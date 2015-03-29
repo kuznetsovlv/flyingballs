@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Flying Balls</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+
+
+        <style>
+
+            body{
+                background-image: url("img/background-body.jpg");
+            }
+
+            div[name="panel"]{
+                position: absolute;
+                right: 5%;
+                width: 80%;
+                height: 80%;
+            }
+
+            div[name="forms"]{
+                position: relative;
+                width: 100%;
+                height: 10%;
+            }
+
+            .zone{
+                position: relative;
+                background-image: url("img/background-zone.gif");
+
+                width: 100%;
+                height: 90%;
+
+
+                border: 2px solid;
+                border-color: #000000;
+                box-shadow: 0px 0px 6px 2px darkgray inset;
+            }
+
+            td {
+
+                height: 50px;
+            }
+
+            tr:nth-child(2n){
+                background: #252c32;
+                opacity: 0.6;
+                filter: alpha(opacity=60);
+            }
+
+            tr:nth-child(2n+1){
+                background: white;
+                opacity: 0.6;
+                filter: alpha(opacity=60);
+            }
+
+            @keyframes increase {
+                from {transform: scale(0,0);
+                    -o-transform: scale(0,0);
+                    -webkit-transform: scale(0,0);
+                    -moz-transform: scale(0,0);
+                    -ms-transform: scale(0,0);
+                }
+                to {transform: scale(1,1);
+                    -o-transform: scale(1,1);
+                    -webkit-transform: scale(1,1);
+                    -moz-transform: scale(1,1);
+                    -ms-transform: scale(1,1);}
+            }
+
+            @-moz-keyframes increase {
+                from {transform: scale(0,0);
+                    -o-transform: scale(0,0);
+                    -webkit-transform: scale(0,0);
+                    -moz-transform: scale(0,0);
+                    -ms-transform: scale(0,0);
+                }
+                to {transform: scale(1,1);
+                    -o-transform: scale(1,1);
+                    -webkit-transform: scale(1,1);
+                    -moz-transform: scale(1,1);
+                    -ms-transform: scale(1,1);}
+            }
+
+            @-o-keyframes increase {
+                from {transform: scale(0,0);
+                    -o-transform: scale(0,0);
+                    -webkit-transform: scale(0,0);
+                    -moz-transform: scale(0,0);
+                    -ms-transform: scale(0,0);
+                }
+                to {transform: scale(1,1);
+                    -o-transform: scale(1,1);
+                    -webkit-transform: scale(1,1);
+                    -moz-transform: scale(1,1);
+                    -ms-transform: scale(1,1);}
+            }
+
+            @-ms-keyframes increase {
+                from {transform: scale(0,0);
+                    -o-transform: scale(0,0);
+                    -webkit-transform: scale(0,0);
+                    -moz-transform: scale(0,0);
+                    -ms-transform: scale(0,0);
+                }
+                to {transform: scale(1,1);
+                    -o-transform: scale(1,1);
+                    -webkit-transform: scale(1,1);
+                    -moz-transform: scale(1,1);
+                    -ms-transform: scale(1,1);}
+            }
+
+            @-webkit-keyframes increase {
+                from {transform: scale(0,0);
+                    -o-transform: scale(0,0);
+                    -webkit-transform: scale(0,0);
+                    -moz-transform: scale(0,0);
+                    -ms-transform: scale(0,0);
+                }
+                to {transform: scale(1,1);
+                    -o-transform: scale(1,1);
+                    -webkit-transform: scale(1,1);
+                    -moz-transform: scale(1,1);
+                    -ms-transform: scale(1,1);}
+            }
+
+            .balls{
+                cursor: pointer;
+
+                animation: increase 1s 1;
+                -o-animation: increase 1s 1;
+                -webkit-animation: increase 1s 1;
+                -moz-animation: increase 1s 1;
+                -ms-animation: increase 1s 1;
+            }
+
+            .balls:hover{
+                transform: scale(1.1,1.1);
+                -o-transform: scale(1.1,1.1);
+                -webkit-transform: scale(1.1,1.1);
+                -moz-transform: scale(1.1,1.1);
+                -ms-transform: scale(1.1,1.1);
+
+                animation-play-state:stoped;
+                -webkit-animation-play-state:stoped;
+                -o-animation-play-state:stoped;
+                -moz-animation-play-state:stoped;
+                -ms-animation-play-state:stoped;
+            }
+
+
+            .balls-container{
+                position: absolute;
+                left: 2%;
+                width: 5%;
+            }
+
+
+
+            span{
+                float: left;
+                margin: 2px;
+                display: inline;
+                vertical-align: middle;
+                height: 90%;
+            }
+
+            button{
+                width: 150px;
+                text-align: center;
+            }
+
+            .slider {
+
+                border-radius: 5px;
+                background: #E0E0E0;
+                background: -moz-linear-gradient(left top , #E0E0E0, #EEEEEE) repeat scroll 0 0 transparent;
+                background: -webkit-gradient(linear, left top, right bottom, from(#E0E0E0), to(#EEEEEE));
+                background: linear-gradient(left top, #E0E0E0, #EEEEEE);
+                width: 90%;
+                height: 15px;
+                margin: 5px;
+            }
+            .thumb {
+                width: 10px;
+                height: 25px;
+                border-radius: 3px;
+                position: relative;
+                left: 10px;
+                top: -5px;
+                background: blue;
+                cursor: pointer;
+            }
+
+            form{
+                font-weight: bold;
+
+            }
+
+
+
+        </style>
+
+
+    </head>
+
+
+
+
+    <body >
+    <div  class="balls-container">
+    <table width = "100%" border = "0" style="float: left" cellspacing ="0">
+        <tr>
+            <td align="center"><img class="balls" src="img\sphere03.png"></td>
+        </tr>
+
+        <tr>
+            <td align="center"><img class="balls" src="img\sphere05.png"></td>
+        </tr>
+
+        <tr>
+            <td align="center"><img class="balls" src="img\sphere01.png"></td>
+        </tr>
+
+        <tr>
+            <td align="center"><img class="balls" src="img\sphere04.png"></td>
+        </tr>
+
+        <tr>
+            <td align="center"><img class="balls" src="img\sphere02.png"></td>
+        </tr>
+    </table>
+    </div>
+
+    <div name="panel">
+    <canvas class="zone"></canvas>
+      <div name="forms">
+          <span>
+              <div style="display: inline">
+                  <form style="background-color: slateblue; opacity: 0.9; filter: alpha(opacity=90); display: inline"><input type="checkbox" class="regen">Regeneration.</form>
+              </div>
+
+              <div style="display: inline">
+                  <form><button restart>Restart</button></form>
+              </div>
+          </span>
+
+          <span style="width: 60%">
+              <div style="display: inline">
+                  <form style="background-color: slateblue; opacity: 0.9; filter: alpha(opacity=90); display: inline"><input type="checkbox" class="grav">Gravitation.</form>
+              </div>
+
+              <div style="display: inline">
+                  <div id="slider" class="slider">
+                      <div class="thumb"></div>
+                  </div>
+              </div>
+          </span>
+
+          <span>
+              <div style="display: inline">
+                  <form><button inverse>Inverse</button></form>
+              </div>
+
+              <div style="display: inline">
+                  <form><button grav>Set <i>G</i> to be zero</button></form>
+              </div>
+          </span>
+      </div>
+    </div>
+
+    <script src="js/Cookies.js"></script>
+    <script src="js/functions.js"></script>
+    <script src="js/Gravitation.js"></script>
+    <script src="js/FlyingBalls.js"></script>
+    <script src="js/Buttons.js"></script>
+    <script src="js/Regeneration.js"></script>
+    <script src="js/dragManager.js"></script>
+
+
+
+    <script>
+
+        zeroGrav();
+        deleteCookie('undefined');
+        upload();
+
+        // Если поддерживается onunload, сохраняем состояние страницы при ее закрытии.
+        if(window.onunload){
+            window.onunload = function(e) {saver(balls)};
+        };
+
+
+    </script>
+    </body>
+</html>

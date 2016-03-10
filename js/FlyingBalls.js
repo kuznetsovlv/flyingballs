@@ -12,235 +12,231 @@
 // В этом массиве хранятся шарики
 var  balls = []; // Вынесен в область глобальных переменных, чтобы был доступ через кнопки
 
+var panelElem = document.getElementById("panel");
+// Объект, определяющий, допустимые границы для движения шарика
+var zoneCoords = {
+
+    get left(){return getCoords(panelElem).right;},
+    get right(){return document.documentElement.clientWidth;},
+
+    get top(){return 0;},
+    get bottom(){return document.documentElement.clientHeight;}
+
+};
+
 // Обработчик движения шариков
-var flyingBalls = new function(ball) {
+var flyingBalls = new function() {
 
-    var k = 20; // Множитель прироста скорости, введен, поскольку без него шарики летают медленнее, чем забрасываются пользователем
 
 
-    // Общее движение
-    function movement() {
-        // Сначала обрабатываем столкновения
-       for(var i = 0; i < balls.length - 1; i++)    {
-            balls[i].coords = getCoords(balls[i]);
 
-            for(var j = i+1; j < balls.length; j++){
-                balls[j].coords = getCoords(balls[j]);
 
 
-                //if(Math.sqrt(Math.pow((balls[i].coords.left + balls[i].radius) - (balls[j].coords.left + balls[j].radius),2) + Math.pow((balls[i].coords.top + balls[i].radius) - (balls[j].coords.top + balls[j].radius),2)) <= balls[i].radius + balls[j].radius) {
-                if(Math.sqrt(Math.pow(balls[i].coords.xCenter - balls[j].coords.xCenter,2) + Math.pow(balls[i].coords.yCenter - balls[j].coords.yCenter,2)) <= balls[i].radius + balls[j].radius) {
-                  impact(balls[i], balls[j], true);
-                };
-            };
-        }
-
-        for(var i = 0; i < balls.length; i++) {
-
-
-            individualMovement(balls[i]);
-
-
-        };
-
-        // Если onunload не поддерживается, сохраняем в процессе
-        if(!window.onunload){
-            saver(balls);
-        };
-    };
-
-    // Функция движения одного шара
-    function individualMovement(ball) {
-
-        // Если включена гравитация, обрабатываем ее воздействие на шарик
-        if(document.getElementsByClassName('grav')[0].checked) gravitation(ball, balls);
-
-        // Помещаем шарик на новые координаты
-        ball.coords.left += k * ball.velocity.vx;
-        ball.coords.top += k * ball.velocity.vy;
-
-        ball.style.left = Math.round(ball.coords.left) + 'px';
-        ball.style.top = Math.round(ball.coords.top) + 'px';
-
-        ball.coords = getCoords(ball);
-        var zone = document.body.getElementsByClassName("zone");
-        var zoneCoords = getCoords(zone[0]);
-
-        // Следим, чтобы шарик не выходил за пределы области, это самое важно, поэтому измение скорости на границе обрабатывается последним
-        if(ball.coords.left <= zoneCoords.left + 6){
-            ball.style.left = Math.round(zoneCoords.left) + 6 + 'px';
-            ball.velocity.vx = Math.abs(ball.velocity.vx);
-        };
-
-        if(ball.coords.right >= zoneCoords.right - 6) {
-            ball.style.left = Math.round(zoneCoords.right - 2 * ball.radius) - 6 + 'px';
-            ball.velocity.vx = -Math.abs(ball.velocity.vx);
-        };
-
-        if(ball.coords.top <= zoneCoords.top + 6) {
-            ball.style.top = Math.round(zoneCoords.top) + 6 + 'px';
-            ball.velocity.vy = Math.abs(ball.velocity.vy);
-        };
-
-        if(ball.coords.bottom >= zoneCoords.bottom - 6) {
-            ball.style.top = Math.round(zoneCoords.bottom - 2 * ball.radius) - 6                                                                      + 'px';
-            ball.velocity.vy = -Math.abs(ball.velocity.vy);
-        };
-
-        //ball.coords = getCoords(ball);
-
-
-
-       /*
-       Здесь я пытался сделать движение менее дискретным, но возникли проблемы
-       ball.coords = getCoords(ball);
-        var zone = document.body.getElementsByClassName("zone");
-        var zoneCoords = getCoords(zone[0]);
-
-        var v = Math.sqrt(Math.pow(ball.velocity.vx,2) + Math.pow(ball.velocity.vy,2));
-
-        var dx = ball.velocity.vx / v;
-        var dy = ball.velocity.vy / v;
-
-        if(document.getElementsByClassName('grav')[0].checked) gravitation(ball, balls);
-
-        var zone = document.body.getElementsByClassName("zone");
-        var zoneCoords = getCoords(zone[0]);
-
-        var i = 0;
-
-        while(i < 1){
-
-
-            ball.coords = getCoords(ball);
-
-
-            for(var i = 0; i < balls.length; i++){
-
-                if(balls[i] == ball) continue;
-
-                balls[i].coords = getCoords(balls[i]);
-
-
-
-                if(Math.sqrt(Math.pow(balls[i].coords.xCenter - ball.coords.xCenter,2) + Math.pow(balls[i].coords.yCenter - ball.coords.yCenter,2)) <= balls[i].radius + ball.radius) {
-                    impact(ball, balls[i], true);
-                };
-            };
-
-            if(ball.coords.left <= zoneCoords.left){
-                ball.velocity.vx = Math.abs(ball.velocity.vx);
-                dx = Math.abs(dx);
-            };
-
-            if(ball.coords.right >= zoneCoords.right) {
-                ball.velocity.vx = -Math.abs(ball.velocity.vx);
-                dx = -Math.abs(dx);
-            };
-
-            if(ball.coords.top <= zoneCoords.top) {
-                ball.velocity.vy = Math.abs(ball.velocity.vy);
-                dy = Math.abs(dy);
-            };
-
-            if(ball.coords.bottom >= zoneCoords.bottom) {
-                ball.velocity.vy = -Math.abs(ball.velocity.vy);
-                dy = -Math.abs(dy);
-            };
-
-            ball.coords.left += 1 * dx;
-            ball.coords.top += 1 * dy;
-
-            ball.style.left = ball.coords.left + 'px';
-            ball.style.top = ball.coords.top + 'px';
-
-            i += 1/v;
-
-        };   */
-
-
-    };
-
-
-    // Обработка столкновения
-    function impact(ball1, ball2, flag){
-
-
-        //Эта проверка включена на случай, если шары сблизившись, пройдут рядом по косательной,
-        //или метод будет выван повторно до того, как они успеют разойтись после столкновения
-        if(!isInImpact(ball1,ball2)) return;
-
-        /// Копируем, чтобы не затирать свойства
-        var impacted = {
-            velocity: {
-                vx: ball2.velocity.vx,
-                vy: ball2.velocity.vy
-            },
-            radius: ball2.radius,
-            coords: ball2.coords,
-            mass: ball2.mass
-        };
-
-        // Повторный вызов функции для расчета изменения скорости второго шара.
-        if(flag) {
-           impact(ball2,ball1,false);
-        };
-
-
-
-        // Переход в систему отсчета центра шара self
-        impacted.velocity.vx -= ball1.velocity.vx;
-        impacted.velocity.vy -= ball1.velocity.vy;
-
-        var dx = (impacted.coords.left + impacted.radius) - (ball1.coords.left + ball1.radius);
-        var dy = (impacted.coords.top + impacted.radius) - (ball1.coords.top + ball1.radius);
-
-        // Метод может быть вызван не в тот момент, когда растояние между центрами шаров будет точно равно двум радиусам, а когда они наползут друг на друга,
-        // поэтому вычисляем действительное расстояние между ними для избежания потерь энергии.
-        var rr = dx*dx + dy*dy;
-        var r = Math.sqrt(rr);
-
-        var vOrt = (impacted.velocity.vx * dx + impacted.velocity.vy * dy) / r; // При столкновении происходит обмен только перпендикулярной к косательной поверхности составляющей скоростей
-
-
-        var newVelocity = 2 * impacted.mass * vOrt / (impacted.mass + ball1.mass); // Новая скорость шара в текущей системе отсчета
-
-
-
-        // Возврат в прежднюю систему отсчета
-        ball1.velocity.vx += newVelocity * dx / r;
-        ball1.velocity.vy += newVelocity * dy / r;
-
-    };
-
-    //Проверяется, что сблизившиеся шары сталкиваются
-    function isInImpact(ball1, ball2){
-        var currentDistance = Math.sqrt(Math.pow((ball2.coords.left + ball2.radius) - (ball1.coords.left + ball1.radius),2) + Math.pow((ball2.coords.top + ball2.radius) - (ball1.coords.top + ball1.radius),2));
-        var prognosedDistance = Math.sqrt(Math.pow((ball2.coords.left + ball2.radius + ball2.velocity.vx) - (ball1.coords.left + ball1.radius + ball1.velocity.vx),2) + Math.pow((ball2.coords.top + ball2.radius + ball2.velocity.vy) - (ball1.coords.top + ball1.radius + ball1.velocity.vy),2));
-
-        return prognosedDistance < currentDistance;
-    };
 
     // Принимаемновые шарики в область движения
-    return function insertBall(ball){
+    this.insertBall = function (ball){
 
-        ball.coords = getCoords(ball); // Координаты шара
+        ball.position = function(){return getCoords(this)};  // Текущая позиция шарика
 
         // Определяем размер и массу шарика
-        ball.radius = (ball.coords.right - ball.coords.left) / 2;
+        ball.radius = (ball.position().right - ball.position().left) / 2;
         ball.mass = Math.pow(ball.radius,3);
+
+        ball.distance = function(ball){
+
+            return Math.sqrt(Math.pow(this.position().center.x - ball.position().center.x, 2) + Math.pow(this.position().center.y - ball.position().center.y, 2));
+        };
+
+
+        // Шаг мувмента до столкновения, либо окончания мувмента
+        ball.step = function(a /*Параметр a используется для задания доли смещения*/){
+
+            //Совершаем движение
+            this.style.left = Math.round(this.position().left + a * this.velocity.vx) + 'px';
+            this.style.top = Math.round(this.position().top + a * this.velocity.vy) + 'px';
+
+
+
+            // Проверяем, что шарик не вылетел за границы зоны, если требуется, возвращаем его в зону
+            if(this.position().left <= zoneCoords.left){
+                this.style.left = Math.round(zoneCoords.left) + 'px';
+                this.velocity.vx = Math.abs(this.velocity.vx);
+
+            };
+
+            if(this.position().right >= zoneCoords.right) {
+                this.style.left = Math.round(zoneCoords.right - 2 * this.radius) + 'px';
+                this.velocity.vx = -Math.abs(this.velocity.vx);
+            };
+
+            if(this.position().top <= zoneCoords.top) {
+                this.style.top = Math.round(zoneCoords.top) + 'px';
+                this.velocity.vy = Math.abs(this.velocity.vy);
+            };
+
+            if(this.position().bottom >= zoneCoords.bottom) {
+                this.style.top = Math.round(zoneCoords.bottom - 2 * this.radius) + 'px';
+                this.velocity.vy = -Math.abs(this.velocity.vy);
+            };
+
+            // Проверяем, не произошло ли столкновение с другим шариком, если произошло, обрабатываем его
+            for(var i = 0; i < balls.length; i++){
+                if(balls[i] === this) return;
+
+                if(this.distance(balls[i]) <= this.radius + balls[i].radius) this.impact(balls[i], true);
+            };
+        };
+
+        ball.movRes = 1; // Счетчик оставшейся доли текущего мувмента
+
+        // Начало текущего мувмента
+        ball.movement = function(){
+            this.movRes = 1;
+            this.move(1);
+        };
+
+        // Обработчик движения
+        ball.move =    function(a /*Параметр a используется для задания доли смещения*/){
+
+
+
+            // Определяем размер шага от оставшегося мувмента.
+            // Сначала сравниваем остаток предстоящего смещения с растоянием до границы
+            var k = (zoneCoords.left - this.position().left) / (a * this.velocity.vx);
+            a = 0 < k && k < a ? k : a;
+
+            k = (zoneCoords.right - this.position().right) / (a * this.velocity.vx);
+            a = 0 < k && k < a ? k : a;
+
+            k = (zoneCoords.top - this.position().top) / (a * this.velocity.vy);
+            a = 0 < k && k < a ? k : a;
+
+            k = (zoneCoords.bottom - this.position().bottom) / (a * this.velocity.vy);
+            a = 0 < k && k < a ? k : a;
+
+            k = this.getA(a); //Ищем на пути ближайший шарик
+            a = 0 < k && k < a ? k : a;
+
+            this.step(a); // Делаем шаг
+
+            this.movRes -= a; // Уменьшаем долю предстоящего смещения
+
+
+            // Если мувмент не закончился, делаем еще один шаг
+            if(this.movRes > 0) this.move(this.movRes);
+
+        };
+
+        // Обработка столкновения
+        ball.impact = function(ball, flag){
+
+           if(!this.isInImpact(ball)) return;  // Убеждаемся, что шарики действительно сталкиваются, а не остановились в такой близости из-за нехватки мувмента
+
+            // Сохраняем скорость другого шарика
+            var impacted = {
+                vx: ball.velocity.vx,
+                vy: ball.velocity.vy
+            };
+
+            // Переход в систему отсчета центра шара self
+            impacted.vx -= this.velocity.vx;
+            impacted.vy -= this.velocity.vy;
+
+            var dx = ball.position().center.x - this.position().center.x;
+            var dy = ball.position().center.y - this.position().center.y;
+
+            // Метод может быть вызван не в тот момент, когда растояние между центрами шаров будет точно равно двум радиусам, а когда они наползут друг на друга,
+            // поэтому вычисляем действительное расстояние между ними для избежания потерь энергии.
+            var rr = dx*dx + dy*dy;
+            var r = Math.sqrt(rr);
+
+            var vOrt = (impacted.vx * dx + impacted.vy * dy) / r; // При столкновении происходит обмен только перпендикулярной к косательной поверхности составляющей скоростей
+
+            var newVelocity = 2 * ball.mass * vOrt / (ball.mass + this.mass); // Новая скорость шара в текущей системе отсчета
+
+            if(flag) ball.impact(this, false);  // Перед записью новых знчений скорости, производим аналогичные изменения для другого шарика
+
+            // Возврат в прежднюю систему отсчета
+            this.velocity.vx += newVelocity * dx / r;
+            this.velocity.vy += newVelocity * dy / r;
+
+
+
+        };
+
+
+       // Определяем оставшуюся долю мувмента до столкновения с другим шариком
+        ball.getA = function(a){
+
+            var x0 = this.position().center.x;
+            var y0 = this.position().center.y;
+            var x = x0;
+            var y = y0;
+
+            // Проверяем отрезок, по которому потенциально будет двигаться центр шарика
+            for(var x = x0; x <= Math.round(x0 + a * this.velocity.vx); x++){
+                 y = (x - x0)  * this.velocity.vy / this.velocity.vx + y0;
+
+                for(var i = 0; i < balls.length; i++){
+                    if(balls[i] === this) continue;
+                    // Если на участке движения есть шарик, с которым текущий сблизится ближе суммы их радиусов, возвращается доля мувмента до их столкновения
+                    if((Math.sqrt(Math.pow(x - balls[i].position().center.x, 2) + Math.pow(y - balls[i].position().center.y, 2)) <= this.radius + balls[i].radius) && (this.distance(balls[i]) > this.radius + balls[i].radius)){
+
+                        return Math.sqrt((Math.pow(x-x0,2) + Math.pow(y-y0,2)) / (Math.pow(this.velocity.vx,2) + Math.pow(this.velocity.vy,2)));
+                    };
+                };
+            };
+
+            return a;  // Иначе возвращается полученная доля мувмента
+        };
+
+        // Проверяем, что шарики находятся в столкновнии
+        // Если небольшое смещение вдоль текущих их скоростей приводит к уменьшению растояния между центрами, это столкновение
+        ball.isInImpact = function(ball){
+
+            var k = 0.00001;
+
+            var prognosedDistance = Math.sqrt(Math.pow(this.position().center.x + k * this.velocity.vx - ball.position().center.x - k * ball.velocity.vx, 2) + Math.pow(this.position().center.y  + k * this.velocity.vy - ball.position().center.y - k * ball.velocity.vy, 2));
+                               //alert(prognosedDistance - this.distance(ball));
+            return prognosedDistance <= this.distance(ball);
+        };
+
+
 
         // Добавляем объект в массив
         balls.push(ball);
-        var n = balls.length - 1;
+
 
         // C добавлением первого шарика периодическая обработка движения
-        if(n == 0) var timer = setInterval(function(){movement.call(self)}, 20);
+        if(balls.length == 1) {
+            clearInterval(timer);  //Прекращаем следить за размером панели, теперь это будет происходить при обработке движения
+            timer = setInterval(function(){movement();}, 50);
+        };
+    };
 
-        return;
+    function movement(){
+
+        // Если включена гравитация, обрабатываем ее воздействие на шарик
+        if(document.getElementsByClassName('grav')[0].checked){
+
+            for(var i = 0; i < balls.length; i++){
+                gravRungeKutta4(balls[i]);
+            };
+        };
+
+        // Для каждого шарика вызываем обработчик движения
+        for(var i = 0; i < balls.length; i++){
+
+            balls[i].movement();
+        };
+
 
     };
 
 
+
+
+
 };
+
 

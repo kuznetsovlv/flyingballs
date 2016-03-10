@@ -33,11 +33,14 @@ function getCoords(elem) {
     var right =  box.right + scrollTop - clientTop;
     var bottom = box.bottom + scrollLeft - clientLeft;
 
-    var xCenter = (right + left) / 2;
-    var yCenter = (bottom + top) / 2;
+
+    var center = {
+          x: (right + left) / 2,
+          y: (bottom + top) / 2
+    };
 
 
-    return { top: top, left: left, right: right, bottom: bottom, xCenter: xCenter, yCenter: yCenter};
+    return { top: top, left: left, right: right, bottom: bottom, center: center};
 };
 
 // Функция обеспечения совместимости с IE.
@@ -80,16 +83,14 @@ function regenerateTable(){
 };
 
 // Сохранение состояния страницы
-function saver(balls){
+function saver(){
 
-    if(!window.localStorage && !localStorage) return saveCookies(); // Такая ситуация бывает, например при запуске страничке в IE с локального диска (поэтому в IE оно и не работало)
-    // Конечно, в этом случае не будет сохраняться, но мне не кажется это проблемой, поскольку браузеры используются для работы с web ресурсами
+
 
     var save = {}; // Сохраняемый объект
 
     // Запоминаем содержимое таблицы
-    var container = document.body.getElementsByClassName("balls-container")[0];
-    save.table = '' + container.innerHTML;
+    save.table = '' + document.body.getElementsByClassName("balls-container")[0].innerHTML;
 
     // Запоминаем состояние чекбокса
     save.checkbox = document.body.getElementsByClassName("regen")[0].checked;
@@ -98,11 +99,17 @@ function saver(balls){
     save.balls = [];
 
     for(var i = 0; i < balls.length; i++){
+
+        var lnk = balls[i].src.split("/");  //Исправление старого бага, связнного с проблемой загрузки изображений шариков при перемещении страницы после предыдущего запуска
+
         var obj = {
-            coords: balls[i].coords,
+            position: {
+                left: balls[i].position().left,
+                top: balls[i].position().top
+            },
             velocity: balls[i].velocity,
             zIndex: balls[i].style.zIndex,
-            src: balls[i].src
+            src: lnk[lnk.length - 1] //Теперь сохраняем только имя картинки
         };
 
         save.balls.push(obj);
@@ -110,39 +117,69 @@ function saver(balls){
 
 
     // Запоминаем параметры гравитации
-    save.gravitationOn = document.getElementsByClassName('grav')[0].checked;
-    save.thumbPos = getCoords(thumbElem).left - getCoords(sliderElem).left;
-    // Поскольку гравитационная постоянная задается положением ползунка, достаточно запомнить только его
+    save.g = g;
+    // Запоминаем состояние чекбокса гравитации
+    save.grav = document.body.getElementsByClassName("grav")[0].checked;
+
+    // Состояние боковой панели
+    save.tohideVisiblity = document.getElementById("tohide").style.visibility;
+    save.panelWidth = document.getElementById("panel").style.width;
+    save.hideDisplay = document.getElementById("hide").style.display;
+    save.unhideDisplay = document.getElementById("unhide").style.display;
 
     // Преобразуем в строку и сохраняем данные
-   localStorage.data = JSON.stringify(save);
+    if(!window.localStorage && !localStorage){  // Такая ситуация бывает, например при запуске страничке в IE с локального диска (поэтому в IE оно и не работало)
+        setCookie('data', JSON.stringify(save));
+    }else{
+        localStorage.data = JSON.stringify(save);
+    };
+
+    return false;
 
 };
 
 function upload(){
 
-    if(!window.localStorage && !localStorage) return uploadCookies(); // Такая ситуация бывает, например при запуске страничке в IE с локального диска (поэтому в IE оно и не работало)
-    // Конечно, в этом случае не будет сохраняться, но мне не кажется это проблемой, поскольку браузеры используются для работы с web ресурсами
-
+    var uploaded;
 
     // Поучаем сохраненные данные
-    var uploaded = JSON.parse(localStorage.data);
+    if(!window.localStorage && !localStorage){  // Такая ситуация бывает, например при запуске страничке в IE с локального диска (поэтому в IE оно и не работало)
 
-    // Если данные не ивлечены, ничего не делаем
+        if (!navigator.cookieEnabled) {
+
+            alert('Для комфортной работы с этим сайтом включите подержку localStorage или cookie.');
+            return;
+
+        };
+
+        uploaded = JSON.parse(getCookie('data'));
+    } else{
+        uploaded = JSON.parse(localStorage.data);
+    };
+
+
+    // Если данные не извлечены, ничего не делаем
     if(!uploaded) return;
 
     // Востанавливаем состояние таблицы
     var table = document.body.getElementsByClassName("balls-container")[0];
-    table.innerHTML = uploaded.table;
+    table.innerHTML = uploaded.table || table.innerHTML;
 
     // Востанавливаем состояние чекбокса регенерации таблицы
     var checkbox = document.getElementsByClassName('regen')[0];
     checkbox.checked = uploaded.checkbox;
 
     // Востанавливаем гравитацию
-    document.getElementsByClassName('grav')[0].checked = uploaded.gravitationOn;
-    thumbElem.style.left = uploaded.thumbPos + 'px';
-    setG((getCoords(thumbElem).xCenter - sliderElem.coords.left)/ (sliderElem.coords.right - sliderElem.coords.left));
+    setThumpPosition(0.5 + (((+uploaded.g) || 0)) / (2 * GMAX));
+
+    document.getElementsByClassName('grav')[0].checked = uploaded.grav;
+    gravitationState(document.getElementsByClassName('grav')[0]);
+
+    // Состояние боковой панели
+    document.getElementById("tohide").style.visibility = uploaded.tohideVisiblity || "inherit";
+    document.getElementById("panel").style.width = uploaded.panelWidth || "234px";
+    document.getElementById("hide").style.display = uploaded.hideDisplay || "inline";
+    document.getElementById("unhide").style.display = uploaded.unhideDisplay || "none";
 
     //Подгружаем шарики
     for(var i = 0; i < uploaded.balls.length; i++){
@@ -152,141 +189,60 @@ function upload(){
         ball.setAttribute('class','flyingballs');
 
 
-        ball.src = uploaded.balls[i].src;
+        ball.src = 'img/' + uploaded.balls[i].src;  //Исправление старого бага, связнного с проблемой загрузки изображений шариков при перемещении страницы после предыдущего запуска
 
-        ball.velocity = uploaded.balls[i].velocity;
-        ball.style.zIndex = uploaded.balls[i].zIndex;
+        ball.velocity = uploaded.balls[i].velocity || {vx:0, vy:0};
+        ball.style.zIndex = uploaded.balls[i].zIndex || 99999;
         ball.style.position = 'absolute';
 
-        ball.coords = uploaded.balls[i].coords;
-
+        ball.velocity.vx = ball.velocity.vx || 0;
+        ball.velocity.vy = ball.velocity.vy || 0;
 
         document.body.appendChild(ball);
 
-        ball.style.left = ball.coords.left + 'px';
-        ball.style.top = ball.coords.top + 'px';
+        ball.style.left = ((uploaded.balls[i].position.left) || 0) + 'px';
+        ball.style.top = ((uploaded.balls[i].position.top) || 0) + 'px';
 
-
-
-        flyingBalls(ball);
-
-    };
-
-
-};
-
-// Отключение гравитации
-function zeroGrav(){
-    // Устанавливаем бегунок в середину слайдера
-    sliderElem.coords = getCoords(sliderElem);
-    thumbElem.coords = getCoords(thumbElem);
-    thumbElem.style.left = Math.round(sliderElem.coords.xCenter - sliderElem.coords.left - (thumbElem.coords.right - thumbElem.coords.left) / 2) + 'px';
-
-    // Устанавливаем g
-    setG(0.5);
-};
-
-function saveCookies(){
-    // На всякий случай.
-    if (!navigator.cookieEnabled) {
-
-        return;
-
-    };
-
-    var Time = 3600; // Время хранения куков в секундах
-
-     // Запоминаем сосотояние чекбокса регенерации
-    setCookie('regen', document.body.getElementsByClassName("regen")[0].checked,{expires: Time});
-
-    // Запоминаем состояние контейнера
-    setCookie('table', document.body.getElementsByClassName("balls-container")[0].innerHTML,{expires: Time});
-
-    // Запоминаем параметры гравитации
-    setCookie('gravitationOn', document.getElementsByClassName('grav')[0].checked, {expires: Time});
-    setCookie('thumbPos', getCoords(thumbElem).left - getCoords(sliderElem).left, {expires: Time});
-
-    // Сохраняем шарики
-    for(var i = 0; i < balls.length; i++){
-        setCookie('ball' + i + 'x', balls[i].coords.left, {expires: Time});
-        setCookie('ball' + i + 'y', balls[i].coords.top, {expires: Time});
-        setCookie('ball' + i + 'vx', balls[i].velocity.vx, {expires: Time});
-        setCookie('ball' + i + 'vy', balls[i].velocity.vy, {expires: Time});
-        setCookie('ball' + i + 'src', balls[i].src, {expires: Time});
-        setCookie('ball' + i + 'z', balls[i].zIndex, {expires: Time});
-
-    };
-
-    setCookie('balls', balls.length, {expires: Time}); // Запоминаем число шариков
-
-    return;
-};
-
-function uploadCookies() {
-    // Это функция вызывается в начале работы страници, если при загрузке выясняется, что браузер не поддерживает localStorage,
-    // поэтому alert внутри условия сработает только при неработающих localStorage и cookie.
-    // Проверку помещаем здесь, а не в сохранении спецально, чтобы, еслипользователь не хочет включать сохранение, страница могла нормально работать.
-    if (!navigator.cookieEnabled) {
-
-        alert('Для комфортной работы с этим сайтом включите подержку localStorage или cookie.');
-        return;
-
-    };
-
-
-    // Востанавливаем гравитацию
-    document.getElementsByClassName('grav')[0].checked =getCookie('gravitationOn') == 'true' ? true: false;      // getCookie возвращает строку, которая всегда преобразуется к true (если не пуста), поэтому приходится присвоение делать таким образом
-    sliderElem.coords = getCoords(sliderElem);
-    thumbElem.coords = getCoords(thumbElem);
-
-    var thumbPos = +getCookie('thumbPos') || Math.round(sliderElem.coords.xCenter - sliderElem.coords.left - (thumbElem.coords.right - thumbElem.coords.left) / 2);
-    thumbElem.style.left = thumbPos + 'px';
-    setG((getCoords(thumbElem).xCenter - sliderElem.coords.left)/ (sliderElem.coords.right - sliderElem.coords.left));
-
-    //Подгружаем шарики
-    for(var i = 0; i < +getCookie('balls'); i++){
-
-        var ball = document.createElement('img');
-
-        ball.setAttribute('class','flyingballs');
-
-
-        ball.src = getCookie('ball' + i + 'src');
-
-        ball.velocity = {
-            vx: +getCookie('ball' + i + 'vx') || 0,
-            vy: +getCookie('ball' + i + 'vy') || 0
-
+        ball.onload = function(){
+            flyingBalls.insertBall(this);
         };
 
-        ball.coords = {
-            left: +getCookie('ball' + i + 'x') || getCoords(document.body.getElementsByClassName('zone')[0]).left,
-            top: +getCookie('ball' + i + 'y') || getCoords(document.body.getElementsByClassName('zone')[0]).top
-
-        };
-
-        ball.style.zIndex = +getCookie('ball' + i + 'z') || 0;
-        ball.style.position = 'absolute';
-
-
-        document.body.appendChild(ball);
-
-        ball.style.left = ball.coords.left + 'px';
-        ball.style.top = ball.coords.top + 'px';
-
-
-
-        flyingBalls(ball);   // Вызывающий двиение и сохранение setInterval согласно спецификации сработает только после того,
-        // как текущий код завершит работу, поэтому затирания куков не боимся.
-
-
     };
 
-    // Востанавливаем состояние контейнера с шариками, чтобы не потерять контейнер, если кук удалился, проверяем его наличие
-    if(getCookie('table')) document.body.getElementsByClassName("balls-container")[0].innerHTML = '' + getCookie('table');
 
-    // Востанавливаем состояние чекбокса регенерации, востанавливаем в последнюю очередь, поскольку в случае, если браузер не поддерживает сразу onuload и localStorage, это востановление
-    // затрет все cookie, вызвав обработчик изменения состояния данного чекбокса, содержащий вызов сохранения состояния
-    var checkbox = document.getElementsByClassName('regen')[0];
-    checkbox.checked = getCookie('regen') == 'true'? true: false; // getCookie возвращает строку, которая всегда преобразуется к true (если не пуста), поэтому приходится присвоение делать таким образом
+};
+
+
+
+
+// Помещаем ползунок в соответсвующее заданному g положение
+function setThumpPosition(x){
+     // Если x не число, g = 0
+    if(!x || x != x) x = 0.5;
+
+    // Если х вышел за допустимые границы, приравниваем его значение значению на соответсвующей границе
+    if(x > 1) x = 1;
+    if(x < 0) x = 0;
+
+    // Помещаем ползунок в соответсвующее положение
+    var thumb = document.body.getElementsByClassName("thumb")[0];
+    thumb.style.left =  x * (sliderElem.clientWidth - thumb.clientWidth) + "px";
+
+    setG(x); // Устанавливаем соответсвующую гравитацию
+
+};
+
+// Взависимости от состояния чекбокса гравитации показываем или прячем элементы управления
+function gravitationState(gravCheckbox){
+    if (gravCheckbox.checked) {
+        document.getElementById("slider").style.visibility = "inherit";
+        document.getElementById("textfield").value = Math.round(1000 * g) / 10;
+        document.getElementById("textfield").style.display = "inline-block";
+        document.getElementById("imitator").style.display = "none";
+    }
+    else{
+        document.getElementById("slider").style.visibility = "hidden";
+        document.getElementById("textfield").style.display = "none";
+        document.getElementById("imitator").style.display = "inline-block";
+    };
 };

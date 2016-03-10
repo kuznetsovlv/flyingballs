@@ -20,6 +20,9 @@ var dragManager = new function() {
 
     var dragObject = {}; // В этот объект помещается перетаскиваемое изображение
     var date;      // Переменная для хранения даты, используется в расчете скорости
+    var now; // Текущее время
+    var position ={}; // Объект для хранения положения шарика в момент date;
+    var coords ={}; // Текущие координаты шарика
     var mouse = {};
 
     // При drag'n'drop для совместимости перетаскивается не сам элемент, а его аватар
@@ -46,7 +49,7 @@ var dragManager = new function() {
             avatar.setAttribute('class','balls');
         };
 
-        // Удаеляем элемент, в котором хранился перемещаемый объект
+        // Удаляем элемент, в котором хранился перемещаемый объект
         avatar.removeParent = function(){
             old.parent.parentNode.parentNode.removeChild(old.parent.parentNode);
         };
@@ -64,6 +67,10 @@ var dragManager = new function() {
             vx:0,
             vy:0
         };
+
+        // Запоминаем время начала движения и начальные координаты
+        date = + new Date();
+        position = getCoords(avatar);
 
         return avatar;
     };
@@ -99,19 +106,54 @@ var dragManager = new function() {
 
     function finishDragBalls(e){
         var dropElem = findDroppable(e); // Проверяем, что объект помещен в нужную зону
-
-        if(dropElem){
-            // Если успех, в зависимости от состояния чекбокса регенерации удаляем из контейнера пустую ячейку, либо загружаем в нее новый шарик
+        // После правок зоной движения является body, поэтому шарик оказывается в зоне, если findDroppable(e) возвращает null
+        if(!dropElem){
+            // Если успех, в зависимости от состояния чекбокса регенерации теперь ничего не делаем, либо загружаем в нее новый шарик
             if(!checkbox.checked){
-                dragObject.avatar.removeParent();
+                //dragObject.avatar.removeParent();
             }   else{
                 dragObject.avatar.regen();
             };
 
+            // На всякий случай последний раз вычисляем скорость
+            now = + new Date();
+            coords = getCoords(dragObject.avatar); // Определяем координаты перемещаемого объекта
+
+            if(now - date > 100){
+                if(Math.abs(position.left - coords.left) > 6){
+                    dragObject.avatar.velocity.vx = (coords.left - position.left) / (now - date);
+                }
+                else {
+                    dragObject.avatar.velocity.vx = 0;
+                };
+
+                if(Math.abs(position.top - coords.top) > 6){
+                    dragObject.avatar.velocity.vy = (coords.top - position.top) / (now - date);
+                }
+                else {
+                    dragObject.avatar.velocity.vy = 0;
+                };
+
+                date = now;
+                position = coords;
+
+            };
+
+            var k = 50; // Умножаем скорость, чтобы она была близка к скорости, с которой тащили шарик.
+            // Коэффициент подобран в ручную
+
+            dragObject.avatar.velocity.vx *=k;
+            dragObject.avatar.velocity.vy *=k;
+
+            document.body.appendChild(dragObject.avatar);
+
              // И передаем перемещенный элемент обработчику движения
-            flyingBalls(dragObject.avatar);
+            flyingBalls.insertBall(dragObject.avatar);
+
+
 
         }else{
+
             // Если перетаскивание завершено неправильно, возвращаем объект наместо
             dragObject.avatar.rollBack();
             dragObject.avatar.setAttribute('class','balls');
@@ -120,16 +162,13 @@ var dragManager = new function() {
 
     function finishDragThumb(e){
         // Определяем положение ползунка
-        var x = (getCoords(dragObject.avatar).xCenter - sliderElem.coords.left)/ (sliderElem.coords.right - sliderElem.coords.left);
+
+
+        var x = 0.5 + (getCoords(dragObject.avatar).center.x - getCoords(sliderElem).center.x)/ (sliderElem.clientWidth - dragObject.avatar.clientWidth);
+
 
         setG(x);  // По положению ползунка задает гравитационную "постоянную"
 
-        // Если onunload не поддерживается, сохраняем в процессе
-        if(!window.onunload){
-            saver([]); // Сохраняем положение ползунка
-            // Не беда, что данное сохранение убьет старое, если оно имеет значение, только, если ползунок двигали,
-            // когда шарикиков в области нет, иначе при следующем же смещении шариков состояние сохранится полностью
-        };
 
     };
 
@@ -164,16 +203,14 @@ var dragManager = new function() {
 
         e = fixEvent(e);   // Обеспечиваем совместимость с IE
 
-        if(e.which != 1) return; // Если нажата правая клавиша, ничего не делать
+        if(e.which != 1) return false; // Если нажата правая клавиша, ничего не делать
 
         var elem = findDragAble(e); // Пытаемся получить элемент для перетаскивания
 
-        if(!elem) return; // На случай, если событие сработало не на dragable элементе (например, всплыло), это вызывало ошибки в остальных браузерах
+        if(!elem) return false; // На случай, если событие сработало не на dragable элементе (например, всплыло), это вызывало ошибки в остальных браузерах
 
-        if(elem != thumbElem)elem.setAttribute('class','flyingballs'); // Меняем у шариков значение class, чтобы отключить css анимацию
-        // В случае успешного перемещения он станет некликабельным
 
-        if(!elem) return;   // Если не получилось прекращаем выполнение
+
 
         dragObject.elem = elem;  // Заносим элемент в перетаскиваемый объект
 
@@ -191,7 +228,11 @@ var dragManager = new function() {
         e = fixEvent(e);
 
         // Способ перемещения зависит от перемещаемого элемента
-        if(dragObject.elem != thumbElem) return MovingBalls(e);
+        if(dragObject.elem != thumbElem) {
+
+
+            return MovingBalls(e);
+        }
 
         return MovingThumb(e);
 
@@ -213,18 +254,21 @@ var dragManager = new function() {
 
 
 
-            date = + new Date();  // Запоминаем текущую дату для проверки скорости перетаскивания
+
         };
 
         // Если перетаскиваемый аватар не создан, пытаемся его создать
-        if(!dragObject.avatar) dragObject.avatar = createAvatar(e);
+        if(!dragObject.avatar) {
+            dragObject.avatar = createAvatar(e);
+            dragObject.avatar.setAttribute('class','flyingballs'); // Меняем у шариков значение class, чтобы отключить css анимацию
+        }
         if(!dragObject.avatar){
             // Если аватар создать не получилось, очищаем объект и ничего не делаем
             dragObject = {};
             return;
         };
 
-        var coords = getCoords(dragObject.avatar); // Определяем координаты перемещаемого объекта
+        coords = getCoords(dragObject.avatar); // Определяем координаты перемещаемого объекта
 
         // Вначале перетаскивания определяем смещение мыши относительно объекта
        if(!movement){
@@ -242,14 +286,28 @@ var dragManager = new function() {
         dragObject.avatar.style.top = e.pageY - dragObject.shiftY + 'px';
 
         // Вычисление скорости
-        var newDate = + new Date();
+        now = + new Date();
 
-        if(newDate - date > 100){
-            dragObject.avatar.velocity.vx = (e.pageX - mouse.left) / (newDate - date);
-            dragObject.avatar.velocity.vy = (e.pageY - mouse.top) / (newDate - date);
-            date = newDate;
-            mouse.left = e.pageX;
-            mouse.top = e.pageY;
+
+        if(now - date > 100){
+            if(Math.abs(position.left - coords.left) > 6){
+                dragObject.avatar.velocity.vx = (coords.left - position.left) / (now - date);
+            }
+            else {
+                dragObject.avatar.velocity.vx = 0;
+            };
+
+            if(Math.abs(position.top - coords.top) > 6){
+                dragObject.avatar.velocity.vy = (coords.top - position.top) / (now - date);
+            }
+            else {
+                dragObject.avatar.velocity.vy = 0;
+            };
+
+            date = now;
+            position = coords;
+
+
 
         };
 
@@ -298,13 +356,14 @@ var dragManager = new function() {
         // Проверяем, что ползунок не выйдет за приеделы слайдера
         coords = getCoords(dragObject.avatar);
         if(coords.left < sliderElem.coords.left) dragObject.avatar.style.left = 0 + 'px';
-        if(coords.right > sliderElem.coords.right) dragObject.avatar.style.left = sliderElem.coords.right - sliderElem.coords.left - coords.right + coords.left + 'px';
+        if(coords.right > sliderElem.coords.right) dragObject.avatar.style.left = sliderElem.clientWidth - dragObject.avatar.clientWidth + 'px';
 
 
     };
 
     // Обработчик отпускания мыши
     function onMoseUp(e){
+
         // Если есть перетаскиваемый объект, обеспечиваем совместимость с IE и запускаем функцию окончания перетаскивания
         if(dragObject.avatar){
             e = fixEvent(e);

@@ -44,16 +44,24 @@ var buttons = new function(){
             return false;
         };
 
-        // Устанавливаем гравитационную "постоянную" в 0
-        if(findButton(e, 'grav')){
-            zeroGrav(); // Отключение гравитации
+         // Прячем панель
+        if(findButton(e, 'hider')){
 
-            // Если onunload не поддерживается, сохраняем в процессе
-            if(!window.onunload){
-                saver(balls);       // Сохраняем произведенные изменения
-            };
+            document.getElementById("tohide").style.visibility = "hidden";
+            document.getElementById("panel").style.width = 40 + "px";
+            document.getElementById("hide").style.display = "none";
+            document.getElementById("unhide").style.display = "inline";
 
+            return false;
+        };
 
+        // Разворачиваем панель
+        if(findButton(e, 'unhider')){
+
+            document.getElementById("tohide").style.visibility = "inherit";
+            document.getElementById("panel").style.width = 234 + "px";
+            document.getElementById("hide").style.display = "inline";
+            document.getElementById("unhide").style.display = "none";
 
             return false;
         };
@@ -68,7 +76,7 @@ var buttons = new function(){
 
             // Отключаем гравитацию
             document.getElementsByClassName('grav')[0].checked = false;
-            zeroGrav();
+            setThumpPosition(0);
 
             // Удаляем шарики
             for(var i = 0; i < balls.length; i++){
@@ -78,11 +86,8 @@ var buttons = new function(){
             };
 
             balls = [];
-
-            // Если onunload не поддерживается, сохраняем в процессе
-            if(!window.onunload){
-                saver(balls);       // Сохраняем произведенные изменения
-            };
+            gravitationState(gravCheckbox);
+            //saver();
 
         };
 
@@ -96,10 +101,10 @@ var buttons = new function(){
                 balls[i].velocity.vy *= -1;
             };
 
-            // Если onunload не поддерживается, сохраняем в процессе
+          /*  // Если onunload не поддерживается, сохраняем в процессе
             if(!window.onunload){
                 saver(balls);       // Сохраняем произведенные изменения
-            };
+            };   */
         };
 
 

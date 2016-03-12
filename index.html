@@ -10,28 +10,75 @@
 
 	<section>
 		<aside>
-			<div class="visiblity"></div>
+			<div class="visiblity">
+				<div id="slidebtn"></div>
+			</div>
 
 			<div class="ballstore">
 				<div class="col">
-					<div class="cell one"></div>
-					<div class="cell tree"></div>
-					<div class="cell five"></div>
+					<div class="cell one">
+						<img src="img/ball01.png" draggable>
+					</div>
+					<div class="cell tree">
+						<img src="img/ball03.png" draggable>
+					</div>
+					<div class="cell five">
+						<img src="img/ball05.png" draggable>
+					</div>
 				</div>
 				<div class="col">
-					<div class="cell two"></div>
-					<div class="cell four"></div>
-					<div class="cell six"></div>
+					<div class="cell two">
+						<img src="img/ball02.png" draggable>
+					</div>
+					<div class="cell four">
+						<img src="img/ball04.png" draggable>
+					</div>
+					<div class="cell six">
+						<img src="img/ball06.png" draggable>
+					</div>
 				</div>
 			</div>
 
-			<div class="rullers"></div>
+			<div class="rullers">
+				<div class="check">
+					<input id="reload" name="reload" type="checkbox"></input>
+					<label for="reload">
+						<span class="box"></span>
+						<span class="text">reload empty cells</span>
+					</label>
+				</div>
+
+				<div id="inverse" class="btn">inverse</div>
+				<div id="restart" class="btn">restart</div>
+			</div>
 		</aside>
 
 		<main></main>
 	</section>
 
-	<footer></footer>
+	<footer>
+		<div>
+			<div class="check">
+				<input id="grav" name="grav" type="checkbox"></input>
+				<label for="grav">
+					<span class="box"></span>
+					<span class="text">gravitation</span>
+				</label>
+			</div>
+		</div>
+		<div>
+			<div class="guide">
+				<div class="slider"></div>
+			</div>
+
+			<div class="cover"></div>
+		</div>
+		<div>
+			<span class="gvalue">0</span>
+
+			<div class="cover"></div>
+		</div>
+	</footer>
 
 	</body>
 </html>

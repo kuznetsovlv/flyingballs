@@ -1,0 +1,98 @@
+* {
+	margin: 0;
+	padding: 0;
+	border: none;
+	font-size: 0;
+	outline: 1px solid red;
+}
+
+html, body {
+	height: 100%;
+}
+
+body {
+	
+}
+
+header, footer {
+	height: 40px;
+	background: url(../img/background-out.png) repeat-y;
+	background-size: 100% 3px;
+}
+
+section {
+	height: calc(100% - 80px);
+	width: 100%;
+	display: table;
+}
+
+aside, main {
+	display: table-cell;
+}
+
+aside {
+	width: 235px;
+	background: url(../img/background-out.png) repeat-y;
+	overflow: auto;
+
+}
+
+main {
+	background: url(../img/background-zone.gif);
+}
+
+.visiblity {
+	height: 30px;
+}
+
+.ballstore {
+	display: table;
+	width: 100%;
+	/*height: 250px;*/
+}
+
+.col {
+	display: table-cell;
+	width: 50%;
+}
+
+.one, .two {
+	height: 90px;
+}
+
+.tree, .four {
+	height: 80px;
+}
+
+.five, .six {
+	height: 60px;
+}
+
+.cell {
+	/*height: 33%;*/
+	background: url(../img/sprite.png) no-repeat;
+}
+
+.one {
+	background-position: -10px -39px;
+}
+
+.two {
+	background-position: -108px -39px;
+}
+
+.tree {
+	background-position: -10px -127px;
+}
+
+.four {
+	background-position: -108px -127px;
+}
+
+.five {
+	background-position: -10px -202px;
+}
+
+.six {
+	background-position: -108px -202px;
+}

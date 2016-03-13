@@ -13,6 +13,7 @@
 	-webkit-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+	outline: 1px solid red;
 }
 
 html, body {
@@ -43,7 +44,7 @@ aside, main {
 aside {
 	width: 235px;
 	background: url(../img/background-out.png) repeat-y;
-	overflow: auto;
+	/*overflow: auto;*/
 
 }
 

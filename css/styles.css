@@ -53,35 +53,35 @@ main {
 }
 
 .visiblity {
-	height: 30px;
+	height: 28px;
 	padding: 1px 0;
 }
 
 #slidebtn {
-	width: 30px;
+	width: 27px;
 	height: 100%;
 	margin: 0 10px 0 auto;
-	background: url(../img/slidebtn.png) 2px 0;
+	background: url(../img/buttons.png) -404px -4px;
 }
 
 #slidebtn:hover {
-	background-position: -94px 0;
+	background-position: -458px -4px;
 }
 
 #slidebtn:active {
-	background-position: -95px 0;
+	background-position: -457px -4px;
 }
 
 #slidebtn.open {
-	background-position: -46px 0;
+	background-position: -430px -4px;
 }
 
 #slidebtn.open:hover {
-	background-position: -143px 0;
+	background-position: -489px -4px;
 }
 
 #slidebtn.open:active {
-	background-position: -142px 0;
+	background-position: -490px -4px;
 }
 
 .ballstore {
@@ -175,7 +175,7 @@ input[type="checkbox"]:checked + label{
 	width: 203px;
 	height: 39px;
 	margin: 10px auto;
-	background: url(../img/button.png) 2px 0;
+	background: url(../img/buttons.png) 2px 0;
 	cursor: pointer;
 	border-radius: 25px;
 	font-family: usedfont;
@@ -186,7 +186,7 @@ input[type="checkbox"]:checked + label{
 }
 
 .btn:active {
-	background-position: -219px 0;
+	background-position: -200px 0;
 }
 
 footer {

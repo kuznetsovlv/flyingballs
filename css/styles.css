@@ -13,7 +13,6 @@
 	-webkit-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
-	outline: 1px solid red;
 }
 
 html, body {
@@ -31,10 +30,16 @@ header, footer {
 }
 
 section {
-	height: calc(100% - 80px);
+	/*height: calc(100% - 80px);*/
 	min-height: 450px;
+	height: 100%;
 	width: 100%;
 	display: table;
+	position: fixed;
+	top: 40px;
+	bottom: 40px;
+	right: 0;
+	left: 0;
 }
 
 aside, main {
@@ -44,13 +49,12 @@ aside, main {
 aside {
 	width: 235px;
 	background: url(../img/background-out.png) repeat-y;
-	/*overflow: auto;*/
-
 }
 
 main {
 	position: relative;
 	background: url(../img/background-zone.gif);
+	width: 100%;
 }
 
 .visiblity {
@@ -99,7 +103,8 @@ main {
 
 .cell {
 	position: relative;
-	height: calc(100%/3);
+	/*height: calc(100%/3);*/
+	height: 33%;
 	background: url(../img/set.png) no-repeat 50% 50%;
 }
 
@@ -193,6 +198,8 @@ input[type="checkbox"]:checked + label{
 footer {
 	display: table;
 	width: 100%;
+	position: fixed;
+	bottom: 0;
 }
 
 footer > div {

@@ -40,8 +40,6 @@
 			this.style.left = [self.x, 'px'].join('');
 			this.style.top = [self.y, 'px'].join('');
 			this.style.zIndex = 10000;
-			// this.style.backgroundColor = 'rgba(0,0,0,0)';
-			// this.style.BorderRadius = this.width / 2;
 		});
 
 		on(elem, 'drag' , function (event) {
@@ -51,15 +49,18 @@
 			    dt = (now - self.now) / INTERVAL;
 			self.x += dx;
 			self.y += dy;
-			self.now = now;
 			self.cursor = {
 				x: event.clientX,
 				y: event.clientY
 			};
-			self.velocity = {
-				x: dx / dt,
-				y: dy / dt
-			};
+
+			if (dt) {
+				self.now = now;
+				self.velocity = {
+					x: dx / dt,
+					y: dy / dt
+				};
+			}
 
 			this.style.left = [self.x, 'px'].join('');
 			this.style.top = [self.y, 'px'].join('');

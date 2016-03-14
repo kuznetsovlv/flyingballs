@@ -34,19 +34,28 @@
 				y: event.clientY
 			};
 
-			event.dataTransfer.setData("text", event.target.src);
+			self.velocities = [];
 
-			this.style.margin = 0;
-			this.style.left = [self.x, 'px'].join('');
-			this.style.top = [self.y, 'px'].join('');
-			this.style.zIndex = 10000;
+			event.dataTransfer.setData("text", this.src);
+			event.dataTransfer.effectAllowed = 'move';
+
+			try {
+				event.dataTransfer.setDragImage(this, (coords.right - coords.left) / 2, (coords.bottom - coords.top) / 2);
+			} catch (e) {
+
+			}
+
+			self.store.dropped = self;
 		});
 
 		on(elem, 'drag' , function (event) {
-			var dx = event.clientX - self.cursor.x,
-			    dy = event.clientY - self.cursor.y,
-			    now = Date.now(),
+			var now = Date.now(),
 			    dt = (now - self.now) / INTERVAL;
+
+			if (dt < 2)
+				return;
+			var dx = event.clientX - self.cursor.x,
+			    dy = event.clientY - self.cursor.y;
 			self.x += dx;
 			self.y += dy;
 			self.cursor = {
@@ -54,30 +63,105 @@
 				y: event.clientY
 			};
 
-			if (dt) {
-				self.now = now;
-				self.velocity = {
-					x: dx / dt,
-					y: dy / dt
-				};
-			}
+			
+			self.now = now;
+			self.velocities.push({
+				x: dx / dt,
+				y: dy / dt
+			});
 
-			this.style.left = [self.x, 'px'].join('');
-			this.style.top = [self.y, 'px'].join('');
-			console.log(self.velocity);
+			self.velocity = {x: 0, y: 0};
+			var l = self.velocities.length;
+
+			if (l > 1) {
+				var i = 2,
+				    v = self.velocities[l - i];
+				if (v.x || v.y)
+					do {
+						self.velocity.x += v.x;
+						self.velocity.y += v.y;
+						v = self.velocities[l - (++i)];
+					} while (v && i <= 10)
+
+				self.velocity.x /= (l - i);
+				self.velocity.y /= (l - i);
+			}
 		});
 
 		on(elem, 'dragend', function (event) {
-			this.style.margin = '';
-			this.style.left = '';
-			this.style.top = '';
-			this.style.zindex = '';
+			if (!/safari/i.test(window.navigator.userAgent) || /chrome/i.test(window.navigator.userAgent))
+				return;
+			var zone = document.getElementsByTagName('main')[0].getBoundingClientRect();
+			console.log(window.navigator.userAgent);
+			console.log(zone, event.clientX, event.clientY);
 		});
 	}
+
+	Object.defineProperties(Ball.prototype, {
+		show: {
+			value: function () {
+				this.e.style.display = '';
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+		hide: {
+			value: function () {
+				this.e.style.display = 'none';
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		}
+	});
+
+	function Store () {
+		this.e = document.getElementsByClassName('ballstore')[0];
+		this.r = document.getElementById('reload');
+
+		this.balls = [];
+
+		var imgs = this.e.getElementsByTagName('img');
+
+		for (var i = 0, l = imgs.length; i < l; ++i) {
+			var ball = new Ball (imgs[i]);
+			ball.store = this;
+			this.balls.push(ball);
+		}
+
+		var self = this;
+
+		on(this.r, 'change', function (event) {
+			if (this.checked)
+				self.show();
+		});
+	}
+
+	Object.defineProperties(Store.prototype, {
+		reload: {
+			get: function () {
+				return this.r.checked;
+			}
+		},
+		show: {
+			value: function () {
+				for (var i = 0, l = this.balls.length; i < l; ++i)
+					this.balls[i].show();
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		}
+	});
 
 	function Planet (src) {
 		this.e = new Image();
 		this.e.src = src;
+		this.e.style.position = 'absolute';
 	}
 
 	Object.defineProperties(Planet.prototype, {
@@ -100,8 +184,8 @@
 				};
 			},
 			set: function (coords) {
-				this.style.left = [coords.x - this.radius, 'px'].join('');
-				this.style.top = [coords.y - this.radius, 'px'].join('');
+				this.e.style.left = [coords.x - this.radius, 'px'].join('');
+				this.e.style.top = [coords.y - this.radius, 'px'].join('');
 			},
 			enumerable: false,
 			configurable: false
@@ -109,10 +193,10 @@
 
 		radius: {
 			get: function () {
-				return +this.width / 2;
+				return +this.e.width / 2;
 			},
 			set: function (r) {
-				this.width = this.height = 2 * r;
+				this.e.width = this.e.height = 2 * r;
 			},
 			enumerable: false,
 			configurable: false
@@ -147,6 +231,30 @@
 		this.e = document.getElementsByTagName('main')[0];
 
 		this.planets = [];
+
+		this.store = new Store().show();
+
+		this.dropped = [];
+
+		var self = this;
+
+		on(this.e, 'dragover', function (event) {
+			if (event.preventDefault)
+				event.preventDefault()
+			else
+				event.returnValue = true;
+			event.dataTransfer.dropEffect = 'move';
+		});
+
+		on(this.e, 'drop', function (event) {
+			if (event.preventDefault)
+				event.preventDefault()
+			else
+				event.returnValue = true;
+
+			for (var i = 0, l = self.dropped.length; i < l; ++i)
+				self.dropped[i].call(self, self.store.dropped, {x: event.clientX, y: event.clientY});
+		});
 	}
 
 	Object.defineProperties(Space.prototype, {
@@ -154,7 +262,7 @@
 			value: function (obj, coords) {
 				var p = new Planet(obj.e.src).bind(this)
 				this.e.appendChild(p.e);
-				p.center = {x: coords.x - this.left, y: coords.y - this.top};
+				p.center = {x: coords.x, y: coords.y};
 				p.setVelocity(obj.velocity);
 				this.planets.push(p);
 
@@ -173,6 +281,16 @@
 			configurable: false
 		},
 
+		ondropped: {
+			value: function (handler) {
+				this.dropped.push(handler);
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		top: {
 			get: function () {
 				return this.e.getBoundingClientRect().top;
@@ -183,11 +301,11 @@
 	});
 
 	window.onload = function () {
-		var space = new Space();
-
-		var images = document.getElementsByClassName('ballstore')[0].getElementsByTagName('img');
-
-		for (var i = 0, l = images.length; i < l; ++i)
-			new Ball(images[i]);
+		var space = new Space().ondropped(function(ball, coords) {
+			if (!this.store.reload)
+				ball.hide();
+			return this.addPlanet(ball, {x: coords.x - this.left, y: coords.y - this.top});
+		});
+		console.log(space);
 	}
 })()

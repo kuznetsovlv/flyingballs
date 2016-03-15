@@ -31,6 +31,10 @@
 		CustomEvent.prototype = Object.create(window.Event.prototype);
 	}
 
+	function round (value, n) {
+		return Math.round(value * Math.pow(10, n)) / Math.pow(10, n);
+	}
+
 	function on (target, type, handler) {
 		function h (event) {
 			event = event || window.event;
@@ -265,12 +269,176 @@
 		}
 	});
 
+	function Range (elem) {
+		this.e = elem;
+
+		this.slider = elem.getElementsByClassName('slider')[0];
+
+		this.setValue(0);
+
+		this.events = {
+			change: []
+		};
+
+		var self = this;
+
+		function move (event) {
+			var rect = this.getBoundingClientRect(),
+			    parentRect = this.parentNode.getBoundingClientRect(),
+			    w = rect.right - rect.left,
+			    l = parentRect.right - parentRect.left - w,
+			    x = event.clientX - parentRect.left - w / 2;
+			if (x < 0)
+				x = 0;
+			if (x > l)
+				x = l;
+			this.style.left = [x, 'px'].join('');
+
+			self.value = x * 2 / l - 1;
+
+			self.emmit('change', self.value);
+		}
+
+		on(elem, 'change', function (event) {
+			var handlers = self.events[event.type];
+
+			if (!handlers)
+				return;
+
+			for (var i = 0, l = handlers.length; i < l; ++i)
+				handlers[i].call(self, event.detail);
+		});
+
+		on(this.slider, 'mousedown', function (event) {
+			this.style.margin = 0;
+			move.call(this, event);
+
+			self.handler = on(document, 'mousemove', function (event) {
+				move.call(self.slider, event);
+			});
+
+			on(document, 'mouseup', function (event) {
+				off(document, 'mousemove', self.handler);
+			});
+		});
+
+		on(this.slider, 'dragstart', function (event) {
+			if (event.preventDefault)
+				event.preventDefault();
+			else
+				event.returnValue = false;
+		});
+
+		on(window, 'resize', function (event) {
+			self.setValue(self.value);
+		});
+
+	}
+
+	Object.defineProperties(Range.prototype, {
+		emmit: {
+			value: function (type, value) {
+				this.e.dispatchEvent(new CustomEvent(type, {detail: value}));
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		on: {
+			value: function (type, handler) {
+				var handlers = this.events[type];
+				if (handlers) {
+					handlers.push(handler);
+				} else {
+					var self = this;
+					this.events[type] = [handler];
+
+					on(this.e, type, function (event) {
+						var handlers = self.events[event.type];
+
+						if ('detail' in event)
+							event = event.detail;
+
+					for (var i = 0, l = handlers.length; i < l; ++i)
+						handlers[i].call(self, event);
+					});
+				}
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		setValue: {
+			value: function (v) {
+				this.value = v;
+				this.slider.style.margin = 0;
+				var slider = this.slider.getBoundingClientRect(),
+				    e = this.e.getBoundingClientRect(),
+				    w = slider.right - slider.left,
+				    l = e.right - e.left - w;
+				this.slider.style.left = [l * (v + 1) / 2, 'px'].join('');
+
+				return this.emmit('change', v);
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		}
+	});
+
+	function Gravitation () {
+
+		this.on = 0;
+
+		this.e = document.getElementById('gravitation');
+
+		var covers = this.e.getElementsByClassName('cover'),
+		    self = this;
+
+		this.switcher = this.e.getElementsByTagName('input')[0];
+
+		this.display = this.e.getElementsByClassName('gvalue')[0];
+
+		this.range = new Range (this.e.getElementsByClassName('guide')[0])
+			.on('change', function (value) {
+				self.G = self.on * self.MAX * value;
+				self.display.textContent = round(self.G, 3);
+			})
+			.on('enabled', function (enabled) {this.emmit('change', (enabled && this.value || 0));});
+
+		on(this.switcher, 'change', function (event) {
+			self.on = this.checked && 1 || 0;
+			self.range.emmit('enabled', this.checked);
+
+			for (var i = 0, l = covers.length; i < l; ++i)
+				covers[i].style.display = this.checked && 'none' || '';
+
+			self.display.style.color = this.checked && '#00e6ec' || '';
+		});
+	}
+
+	Object.defineProperties(Gravitation.prototype, {
+		MAX: {
+			value: 30,
+			writable: false,
+			enumerable: true,
+			configurable: false
+		}
+	});
+
 	function Space () {
 		this.e = document.getElementsByTagName('main')[0];
 
 		this.planets = [];
 
 		this.store = new Store().show();
+
+		this.gravitation = new Gravitation();
 
 		this.dropped = [];
 
@@ -285,6 +453,8 @@
 			for (var i = 0, l = self.dropped.length; i < l; ++i)
 				self.dropped[i].call(self, event.detail);
 		});
+
+		on(document.getElementById('inverse'), 'click', function (event) {DIRECTION *= -1;}); // Change moving direction
 	}
 
 	Object.defineProperties(Space.prototype, {

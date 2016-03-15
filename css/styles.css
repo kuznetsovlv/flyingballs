@@ -48,6 +48,7 @@ aside, main {
 
 aside {
 	width: 235px;
+	padding: 0 16px;
 	background: url(../img/background-out.png) repeat-y;
 }
 

@@ -252,7 +252,17 @@ footer > div:nth-child(2) {
 	border-bottom-left-radius: 20px;
 	cursor: pointer;
 	position: relative;
-	top: -5px;
+	top: -35px;
+	margin: auto;
+}
+
+.center {
+	width: 2px;
+	height: 30px;
+	background: black;
+	position: relative;
+	top: -10px;
+	left: 1px;
 	margin: auto;
 }
 

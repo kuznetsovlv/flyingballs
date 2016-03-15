@@ -101,8 +101,31 @@
 
 			self.velocity = {x: 0, y:0};
 
-			self.handler = on(document, 'mousemove', function (event) {
+			var handler = on(document, 'mousemove', function (event) {
 				moving.call(self.e, event);
+			});
+
+			var handler2 = on(document, 'mouseup', function (event) {
+				off(document, 'mousemove', handler);
+				off(document, 'mouseup', handler2);
+				if (self.velocities) {
+					var last = self.velocities[self.velocities.length - 1];
+					if (Math.abs(last.x) < ZERO && Math.abs(last.y) < ZERO)
+						self.velocity = {x: 0, y: 0};
+					else
+						self.velocity = self.velocities.reduce(function (a, b) {return {x: a.x + b.x, y: a.y + b.y};});
+				}
+			
+				delete self.velocities;
+				elem.style.left = '';
+				elem.style.top = '';
+				elem.style.margin = '';
+				elem.style.position = '';
+				elem.style.zIndex = '';
+				self.x = event.clientX;
+				self.y = event.clientY;
+				if (inTarget(self.target, {x: event.clientX, y: event.clientY}))
+					self.target.dispatchEvent(new CustomEvent('drop', {detail: self}));
 			});
 		});
 
@@ -114,28 +137,6 @@
 				event.preventDefault();
 			else
 				event.returnValue = false;
-		});
-
-		on(elem, 'mouseup', function (event) {
-			off(document, 'mousemove', self.handler);
-			if (self.velocities) {
-				var last = self.velocities[self.velocities.length - 1];
-				if (Math.abs(last.x) < ZERO && Math.abs(last.y) < ZERO)
-					self.velocity = {x: 0, y: 0};
-				else
-					self.velocity = self.velocities.reduce(function (a, b) {return {x: a.x + b.x, y: a.y + b.y};});
-			}
-			
-			delete self.velocities;
-			this.style.left = '';
-			this.style.top = '';
-			this.style.margin = '';
-			this.style.position = '';
-			this.style.zIndex = '';
-			self.x = event.clientX;
-			self.y = event.clientY;
-			if (inTarget(self.target, {x: event.clientX, y: event.clientY}))
-				self.target.dispatchEvent(new CustomEvent('drop', {detail: self}));
 		});
 	}
 
@@ -313,12 +314,13 @@
 			this.style.margin = 0;
 			move.call(this, event);
 
-			self.handler = on(document, 'mousemove', function (event) {
+			var handler = on(document, 'mousemove', function (event) {
 				move.call(self.slider, event);
 			});
 
-			on(document, 'mouseup', function (event) {
-				off(document, 'mousemove', self.handler);
+			var handler2 = on(document, 'mouseup', function (event) {
+				off(document, 'mousemove', handler);
+				off(document, 'mousemove', handler2);
 			});
 		});
 

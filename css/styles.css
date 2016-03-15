@@ -170,11 +170,15 @@ input[type="checkbox"]:checked + label{
 	margin: auto;
 }
 
-[draggable] {
+.draggable {
 	-khtml-user-drag: element;
 	-webkit-user-drag: element;
 	-ms-user-drag: element;
 	cursor: move;
+}
+
+.draggable:active {
+	cursor: no-drop;
 }
 
 .btn {

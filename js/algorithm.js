@@ -187,12 +187,27 @@
 		reload: {
 			get: function () {
 				return this.r.checked;
-			}
+			},
+			set: function (v) {
+				this.r.checked = !!v;
+			},
+			configurable: false
 		},
+
 		show: {
 			value: function () {
 				for (var i = 0, l = this.balls.length; i < l; ++i)
 					this.balls[i].show();
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		restart: {
+			value: function () {
+				this.show().reload = false;
 				return this;
 			},
 			writable: false,
@@ -226,7 +241,7 @@
 					y: (coords.top + coords.bottom) / 2 - this.parent.top
 				};
 			},
-			set: function (coords) {console.log(this.radius);
+			set: function (coords) {
 				this.e.style.left = [coords.x - this.radius, 'px'].join('');
 				this.e.style.top = [coords.y - this.radius, 'px'].join('');
 			},
@@ -430,6 +445,27 @@
 			writable: false,
 			enumerable: true,
 			configurable: false
+		},
+		restart: {
+			value: function () {
+				if (this.switcher.checked) {
+					var click;
+					try {
+						click = new MouseEvent("click");
+					} catch (e) {
+						click = document.createEvent("Event");
+						click.initEvent('click', false, false);
+					}
+					this.switcher.dispatchEvent(click);
+				}
+
+				this.range.setValue(0).emmit('enabled', false);
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
 		}
 	});
 
@@ -457,6 +493,19 @@
 		});
 
 		on(document.getElementById('inverse'), 'click', function (event) {DIRECTION *= -1;}); // Change moving direction
+
+		on(document.getElementById('slidebtn'), 'click', function (event) {
+			var classList = document.body.classList;
+
+			if (classList.contains('expanded'))
+				classList.remove('expanded');
+			else
+				classList.add('expanded');
+		});
+
+		on(document.getElementById('restart'), 'click', function (event) {
+			self.restart();
+		});
 	}
 
 	Object.defineProperties(Space.prototype, {
@@ -495,6 +544,20 @@
 			configurable: false
 		},
 
+		restart: {
+			value: function () {
+				while (this.planets.length)
+					this.e.removeChild(this.planets.shift().e);
+				this.store.restart();
+				this.gravitation.restart();
+				DIRECTION = 1;
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		top: {
 			get: function () {
 				return this.e.getBoundingClientRect().top;
@@ -510,6 +573,5 @@
 				ball.hide();
 			return this.addPlanet(ball, {x: ball.x - this.left, y: ball.y - this.top});
 		});
-		console.log(space);
 	}
 })()

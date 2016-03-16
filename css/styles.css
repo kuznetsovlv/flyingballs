@@ -46,7 +46,12 @@ aside {
 	left: 0;
 	width: 235px;
 	background: url(../img/background-out.png) repeat-y;
+	background-size: 100% 3px;
 	overflow: auto;
+}
+
+body.expanded aside {
+	width: 50px;
 }
 
 main {
@@ -56,6 +61,14 @@ main {
 	right: 0;
 	bottom: 40px;
 	left: 235px;
+}
+
+body.expanded main {
+	left: 50px;
+}
+
+body.expanded aside > *:not(.visiblity) {
+	display: none;
 }
 
 .visiblity {
@@ -79,15 +92,15 @@ main {
 	background-position: -457px -4px;
 }
 
-#slidebtn.open {
+body.expanded #slidebtn {
 	background-position: -430px -4px;
 }
 
-#slidebtn.open:hover {
+body.expanded #slidebtn:hover {
 	background-position: -489px -4px;
 }
 
-#slidebtn.open:active {
+body.expanded #slidebtn:active {
 	background-position: -490px -4px;
 }
 

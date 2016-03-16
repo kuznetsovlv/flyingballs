@@ -410,12 +410,11 @@
 
 	function Gravitation () {
 
-		this.on = 0;
+		var self = this;
 
 		this.e = document.getElementById('gravitation');
 
-		var covers = this.e.getElementsByClassName('cover'),
-		    self = this;
+		this.covers = this.e.getElementsByClassName('cover');
 
 		this.switcher = this.e.getElementsByTagName('input')[0];
 
@@ -423,19 +422,14 @@
 
 		this.range = new Range (this.e.getElementsByClassName('guide')[0])
 			.on('change', function (value) {
-				self.G = self.on * self.MAX * value;
+				self.G = self.MAX * value;
 				self.display.textContent = round(self.G, 3);
 			})
 			.on('enabled', function (enabled) {this.emmit('change', (enabled && this.value || 0));});
 
 		on(this.switcher, 'change', function (event) {
-			self.on = this.checked && 1 || 0;
 			self.range.emmit('enabled', this.checked);
-
-			for (var i = 0, l = covers.length; i < l; ++i)
-				covers[i].style.display = this.checked && 'none' || '';
-
-			self.display.style.color = this.checked && '#00e6ec' || '';
+			self.enable(this.checked);
 		});
 	}
 
@@ -446,18 +440,24 @@
 			enumerable: true,
 			configurable: false
 		},
+
+		enable: {
+			value: function (enable) {
+				if (!arguments.length)
+					enable = true;
+				this.display.style.color = enable && '#00e6ec' || '';
+				for (var i = 0, l = this.covers.length; i < l; ++i)
+					this.covers[i].style.display = enable && 'none' || '';
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		restart: {
 			value: function () {
-				if (this.switcher.checked) {
-					var click;
-					try {
-						click = new MouseEvent("click");
-					} catch (e) {
-						click = document.createEvent("Event");
-						click.initEvent('click', false, false);
-					}
-					this.switcher.dispatchEvent(click);
-				}
+				this.enable(false).switcher.checked = false;
 
 				this.range.setValue(0).emmit('enabled', false);
 

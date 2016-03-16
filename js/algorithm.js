@@ -1,9 +1,10 @@
 (function () {
 	"use strict";
 
-	var DIRECTION = 1;
-	var INTERVAL = 10;
-	var ZERO = 0.028;
+	var DIRECTION = 1; //Pseudoconstant to simple iverse velosities
+	var STEP_PERIOD = 40;
+	var CRON_PERIOD = 10;
+	var ZERO = 0.028; //Half-width of the zero interval to pushing resting balls
 
 	try {
 		new CustomEvent("IE has CustomEvent, but doesn't support constructor");
@@ -76,7 +77,7 @@
 
 				this.style.cursor = inTarget(self.target, {x: event.clientX, y: event.clientY}) ? 'move' : '';
 
-			var dt = (Date.now() - self.now) / INTERVAL;
+			var dt = (Date.now() - self.now) / STEP_PERIOD;
 
 			if (dt) {
 				var dx = event.clientX - self.x,
@@ -110,10 +111,13 @@
 				off(document, 'mouseup', handler2);
 				if (self.velocities) {
 					var last = self.velocities[self.velocities.length - 1];
-					if (Math.abs(last.x) < ZERO && Math.abs(last.y) < ZERO)
+					if (Math.abs(last.x) < ZERO && Math.abs(last.y) < ZERO) {
 						self.velocity = {x: 0, y: 0};
-					else
+					} else {
 						self.velocity = self.velocities.reduce(function (a, b) {return {x: a.x + b.x, y: a.y + b.y};});
+						self.velocity.x *= DIRECTION; //Consider current DIRECTION
+						self.velocity.y *= DIRECTION;
+					}
 				}
 			
 				delete self.velocities;
@@ -469,8 +473,104 @@
 		}
 	});
 
+	function Cron (period) {
+		this.period = period || CRON_PERIOD;
+		this.tasks = {};
+	}
+
+	Object.defineProperties(Cron.prototype, {
+		addTask: {
+			value: function (action /*function*/, when /*ms*/, args /*Array*/, context) {
+				var task = {
+					action: action,
+					args: args || [],
+					context: context || this
+				};
+
+				when += Date.now();
+
+				if (!this.tasks)
+					this.tasks = {};
+
+				if (!this.tasks[when])
+					this.tasks[when] = [task];
+				else
+					this.tasks.when.push(task);
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		shift: {
+			value: function (shift) {
+				var tasks = {};
+				for (var key in this.tasks)
+					tasks[parseInt(key) + shift] = this.tasks[key];
+				this.tasks = tasks;
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		start: {
+			value: function () {
+				if (this.stoped)
+					this.shift(Date.now() - this.stoped);
+
+				var self = this;
+
+				if (!this.interval)
+					this.interval = setInterval(function () {
+
+						if (!self.tasks)
+							self.tasks = {};
+
+						for (var key in self.tasks) {
+							if (parseInt(key) <= Date.now()) {
+								var tasks = self.tasks[key];
+								for (var i = 0, l = tasks.length; i < l; ++i) {
+									var task = tasks[i];
+									task.action.apply(task.context, task.args);
+								}
+								delete self.tasks[key];
+							} else {
+								break;
+							}
+						}
+						delete self.interval;
+						self.start();
+					}, this.period);
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		stop: {
+			value: function () {
+				if (this.interval) {
+					clearInteval(this.interval);
+					delete this.interval;
+					this.stoped = Date.now();
+				}
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		}
+	});
+
 	function Space () {
 		this.e = document.getElementsByTagName('main')[0];
+
+		this.cron = new Cron (CRON_PERIOD).start();
 
 		this.planets = [];
 

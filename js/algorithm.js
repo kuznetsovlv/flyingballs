@@ -3,7 +3,7 @@
 
 	var DIRECTION = 1; //Pseudoconstant to simple iverse velosities
 	var STEP_PERIOD = 40;
-	var CRON_PERIOD = 10;
+	var CRON_PERIOD = 40;
 	var ZERO = 0.028; //Half-width of the zero interval to pushing resting balls
 
 	try {
@@ -503,6 +503,47 @@
 			configurable: false
 		},
 
+		complete: {
+			value: function () {
+				var self = this;
+				this.interval = setInterval(function () {
+					if (!self.tasks)
+						self.tasks = {};
+
+					for (var key in self.tasks) {
+						if (parseInt(key) <= Date.now()) {
+							var tasks = self.tasks[key];
+							for (var i = 0, l = tasks.length; i < l; ++i) {
+								var task = tasks[i];
+								task.action.apply(task.context, task.args);
+							}
+							delete self.tasks[key];
+						} else {
+							break;
+						}
+					}
+					self.complete();
+				}, this.nexIntrval);
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		nexIntrval: {
+			get: function () {
+				var next;
+				for (var key in this.tasks) {
+					next = parseInt(key);
+					break;
+				}
+
+				return next ? this.period : Math.min(Math.max(next - Date.now(), 0), this.period);
+			},
+			enumerable: false,
+			configurable: false
+		},
+
 		shift: {
 			value: function (shift) {
 				var tasks = {};
@@ -520,32 +561,7 @@
 			value: function () {
 				if (this.stoped)
 					this.shift(Date.now() - this.stoped);
-
-				var self = this;
-
-				if (!this.interval)
-					this.interval = setInterval(function () {
-
-						if (!self.tasks)
-							self.tasks = {};
-
-						for (var key in self.tasks) {
-							if (parseInt(key) <= Date.now()) {
-								var tasks = self.tasks[key];
-								for (var i = 0, l = tasks.length; i < l; ++i) {
-									var task = tasks[i];
-									task.action.apply(task.context, task.args);
-								}
-								delete self.tasks[key];
-							} else {
-								break;
-							}
-						}
-						delete self.interval;
-						self.start();
-					}, this.period);
-
-				return this;
+				return this.complete(	);
 			},
 			writable: false,
 			enumerable: false,
@@ -555,7 +571,7 @@
 		stop: {
 			value: function () {
 				if (this.interval) {
-					clearInteval(this.interval);
+					clearInterval(this.interval);
 					delete this.interval;
 					this.stoped = Date.now();
 				}

@@ -32,6 +32,33 @@
 		CustomEvent.prototype = Object.create(window.Event.prototype);
 	}
 
+	function clone (o, keys, def) {
+		if (!o || typeof o !== 'object')
+			return o;
+		var c = o instanceof Array? [] : {};
+		if (keys) {
+			keys = keys.split(',');
+			for (var i = 0, length = keys.length; i < length; ++i) {
+				var key = keys[i];
+				if (key in o)
+					c[key] = clone(o[key]);
+				else if (def)
+					c[key] = clone(def.value);
+			}
+		} else {
+			for (var p in o) {
+				if (o.hasOwnProperty(p)) {
+					var v = o[p];
+					if (v && typeof v === 'object')
+						c[p] = clone(v);
+					else
+						c[p] = v;
+				}
+			}
+		}
+		return c;
+	}
+
 	function round (value, n) {
 		return Math.round(value * Math.pow(10, n)) / Math.pow(10, n);
 	}
@@ -227,6 +254,20 @@
 	}
 
 	Object.defineProperties(Planet.prototype, {
+		accelerate: {
+			value: function (a) {
+				if (!this.velocity)
+					this.velocity = clone(a);
+				else
+					for (var key in a)
+						this.velocity[key] = this.velocity[key] ? this.velocity[key] + a[key] : a[key];
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		bind: {
 			value: function (parent) {
 				this.parent = parent;
@@ -266,10 +307,7 @@
 
 		setVelocity: {
 			value: function (v) {
-				if (!this.velocity)
-					this.velocity = {};
-				this.velocity.x = v.x;
-				this.velocity.y = v.y;
+				this.velocity = clone(v);
 				return this;
 			},
 			writable: false,
@@ -280,12 +318,13 @@
 		go: {
 			value: function (a) {
 				var position = this.center;
-
-				this.center = {
-					x: position.x + a * DIRECTION * this.velocity.x,
-					y: position.y + a * DIRECTION * this.velocity.y
-				}
-			}
+				for (var key in this.velocity)
+					position[key] = position[key] ? position[key] + a * DIRECTION * this.velocity[key] : a * DIRECTION * this.velocity[key];
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
 		}
 	});
 

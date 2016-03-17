@@ -2,8 +2,8 @@
 	"use strict";
 
 	var DIRECTION = 1; //Pseudoconstant to simple iverse velosities
-	var STEP_PERIOD = 40;
-	var CRON_PERIOD = 40;
+	var STEP_PERIOD = 100;
+	var CRON_PERIOD = 100;
 	var ZERO = 0.028; //Half-width of the zero interval to pushing resting balls
 
 	try {
@@ -316,10 +316,11 @@
 		},
 
 		go: {
-			value: function (a) {
+			value: function (a) {console.log(a, this.velocity);
 				var position = this.center;
 				for (var key in this.velocity)
 					position[key] = position[key] ? position[key] + a * DIRECTION * this.velocity[key] : a * DIRECTION * this.velocity[key];
+				this.center = position; console.log(this.center);
 				return this;
 			},
 			writable: false,
@@ -534,7 +535,7 @@
 				if (!this.tasks[when])
 					this.tasks[when] = [task];
 				else
-					this.tasks.when.push(task);
+					this.tasks[when].push(task);
 				return this;
 			},
 			writable: false,
@@ -625,7 +626,7 @@
 	function Space () {
 		this.e = document.getElementsByTagName('main')[0];
 
-		this.cron = new Cron (CRON_PERIOD).start();
+		this.cron = new Cron (CRON_PERIOD);
 
 		this.planets = [];
 
@@ -681,10 +682,74 @@
 			configurable: false
 		},
 
+		impact: {
+			value: function (a, b) {
+				var d = a.radius + b.radius,
+				    a_c = a.center,
+				    b_c = b.center,
+				    k0, k1, k2;
+
+				k0 = k1 = k2 = 0;
+
+				for (var key in a_c) {
+
+					var dx = (a_c[key] || 0) - (b_c[key] || 0),
+					    dv = (a.velocity[key] || 0) - (b.velocity[key] || 0);
+
+					k0 += dx * dx;
+					k1 += dx * dv;
+					k2 += dv * dv;
+				}
+
+				var det = k1 * k1 - k0 * k2;
+
+				return det ? undefined : - k1 / k0;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		impactForecast: {
+			value: function () {
+				this.step = 1;
+				var n = this.planets.length,
+				    tmp;
+				for (var i = 0; i < n;) {
+
+					var p = this.planets[i];
+
+					if ((tmp = this.toWall(p)) < this.step)
+						this.step = tmp;console.log(this.step);
+
+					for (var j = ++i; j < n; ++j) {
+						if ((tmp = this.impact(p, this.planets[j]) || 0) > 0 && tmp < this.step)
+							this.step = tmp;
+					}
+				}
+				console.log(this.step);
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		left: {
 			get: function () {
 				return this.e.getBoundingClientRect().left;
 			},
+			enumerable: false,
+			configurable: false
+		},
+
+		move: {
+			value: function () {
+				for (var i = 0, l = this.planets.length; i < l; ++i)
+					this.planets[i].go(this.step);
+				return this
+			},
+			writable: false,
 			enumerable: false,
 			configurable: false
 		},
@@ -713,20 +778,67 @@
 			configurable: false
 		},
 
+		setTask: {
+			value: function () {
+				var self = this;
+
+				this.cron.addTask(function () {
+					this.move().impactForecast().setTask();
+				}, this.step * STEP_PERIOD, [], this)
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		start: {
+			value: function () {
+
+				this.step = 1;
+
+				this.cron.start();
+
+				return this.setTask();
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		top: {
 			get: function () {
 				return this.e.getBoundingClientRect().top;
 			},
 			enumerable: false,
 			configurable: false
+		},
+
+		toWall: {
+			value: function (o) {
+				function _t (v, f, t) {console.log(arguments);
+					return (t - f) / v;
+				}
+				var zone = this.e.getBoundingClientRect(),
+				    planet = o.e.getBoundingClientRect(),
+				    t;
+				return Math.min(
+					_t.apply(this, o.velocity.x > 0 ? [o.velocity.x, planet.right, zone.right] : [o.velocity.x, planet.left, zone.left]),
+					_t.apply(this, o.velocity.y > 0 ? [o.velocity.y, planet.bottom, zone.bottom] : [o.velocity.y, planet.top, zone.top])
+					);
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
 		}
 	});
 
 	window.onload = function () {
-		var space = new Space().ondropped(function(ball) {
-			if (!this.store.reload)
-				ball.hide();
-			return this.addPlanet(ball, {x: ball.x - this.left, y: ball.y - this.top});
-		});
+		new Space()
+			.ondropped(function(ball) {
+				if (!this.store.reload)
+					ball.hide();
+				return this.addPlanet(ball, {x: ball.x - this.left, y: ball.y - this.top});
+			})
+			.start();
 	}
 })()

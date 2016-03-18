@@ -2,8 +2,8 @@
 	"use strict";
 
 	var DIRECTION = 1; //Pseudoconstant to simple iverse velosities
-	var STEP_PERIOD = 100;
-	var CRON_PERIOD = 100;
+	var STEP_PERIOD = 40;
+	var CRON_PERIOD = 10;
 	var ZERO = 0.028; //Half-width of the zero interval to pushing resting balls
 
 	try {
@@ -316,11 +316,11 @@
 		},
 
 		go: {
-			value: function (a) {console.log(a, this.velocity);
+			value: function (a) {
 				var position = this.center;
 				for (var key in this.velocity)
 					position[key] = position[key] ? position[key] + a * DIRECTION * this.velocity[key] : a * DIRECTION * this.velocity[key];
-				this.center = position; console.log(this.center);
+				this.center = position;
 				return this;
 			},
 			writable: false,
@@ -546,7 +546,7 @@
 		complete: {
 			value: function () {
 				var self = this;
-				this.interval = setInterval(function () {
+				this.interval = setTimeout(function () {
 					if (!self.tasks)
 						self.tasks = {};
 
@@ -611,7 +611,7 @@
 		stop: {
 			value: function () {
 				if (this.interval) {
-					clearInterval(this.interval);
+					clearTimeout(this.interval);
 					delete this.interval;
 					this.stoped = Date.now();
 				}
@@ -720,14 +720,13 @@
 					var p = this.planets[i];
 
 					if ((tmp = this.toWall(p)) < this.step)
-						this.step = tmp;console.log(this.step);
+						this.step = tmp;
 
 					for (var j = ++i; j < n; ++j) {
 						if ((tmp = this.impact(p, this.planets[j]) || 0) > 0 && tmp < this.step)
 							this.step = tmp;
 					}
 				}
-				console.log(this.step);
 				return this;
 			},
 			writable: false,
@@ -815,7 +814,7 @@
 
 		toWall: {
 			value: function (o) {
-				function _t (v, f, t) {console.log(arguments);
+				function _t (v, f, t) {
 					return (t - f) / v;
 				}
 				var zone = this.e.getBoundingClientRect(),

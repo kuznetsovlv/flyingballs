@@ -577,7 +577,7 @@
 					next = parseInt(key);
 					break;
 				}
-
+				
 				return next ? this.period : Math.min(Math.max(next - Date.now(), 0), this.period);
 			},
 			enumerable: false,
@@ -719,7 +719,7 @@
 
 					var p = this.planets[i];
 
-					if ((tmp = this.toWall(p)) < this.step)
+					if ((tmp = this.toWall(p)) > 0 && tmp < this.step)
 						this.step = tmp;
 
 					for (var j = ++i; j < n; ++j) {

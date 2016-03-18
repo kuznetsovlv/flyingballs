@@ -601,7 +601,7 @@
 			value: function () {
 				if (this.stoped)
 					this.shift(Date.now() - this.stoped);
-				return this.complete(	);
+				return this.complete();
 			},
 			writable: false,
 			enumerable: false,
@@ -694,7 +694,7 @@
 				for (var key in a_c) {
 
 					var dx = (a_c[key] || 0) - (b_c[key] || 0),
-					    dv = (a.velocity[key] || 0) - (b.velocity[key] || 0);
+					    dv = ((a.velocity[key] || 0) - (b.velocity[key] || 0)) * DIRECTION;
 
 					k0 += dx * dx;
 					k1 += dx * dv;
@@ -769,6 +769,7 @@
 					this.e.removeChild(this.planets.shift().e);
 				this.store.restart();
 				this.gravitation.restart();
+				this.cron.stop().start();
 				DIRECTION = 1;
 				return this;
 			},
@@ -821,8 +822,8 @@
 				    planet = o.e.getBoundingClientRect(),
 				    t;
 				return Math.min(
-					_t.apply(this, o.velocity.x > 0 ? [o.velocity.x, planet.right, zone.right] : [o.velocity.x, planet.left, zone.left]),
-					_t.apply(this, o.velocity.y > 0 ? [o.velocity.y, planet.bottom, zone.bottom] : [o.velocity.y, planet.top, zone.top])
+					_t.apply(this, o.velocity.x * DIRECTION > 0 ? [o.velocity.x * DIRECTION, planet.right, zone.right] : [o.velocity.x * DIRECTION, planet.left, zone.left]),
+					_t.apply(this, o.velocity.y * DIRECTION > 0 ? [o.velocity.y * DIRECTION, planet.bottom, zone.bottom] : [o.velocity.y * DIRECTION, planet.top, zone.top])
 					);
 			},
 			writable: false,

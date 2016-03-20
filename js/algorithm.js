@@ -760,12 +760,20 @@
 					var d = 0;
 					for (var key in delta)
 						d += Math.pow(delta[key], 2);
+					d = Math.sqrt(d);
 
 					var dv = 0;
 
 					for (var key in values.velocity)
-						dv += values.velocity[key] * (delta[key] || 0);
-					dv = 2 * values.mass * dv / (this.mass + values.mass);
+						dv += Math.pow(values.velocity[key], 2);
+					dv = Math.sqrt(dv);
+
+					dv *= (values.velocity.x / dv) * (delta.x / d) + (values.velocity.y / dv) * (delta.y / d);
+
+					if (dv * DIRECTION >= 0)
+						return;
+
+					dv *= 2 * values.mass / (this.mass + values.mass);
 
 					for (var key in delta)
 						this.velocity[key] = (this.velocity[key] || 0) + dv * delta[key] / d;

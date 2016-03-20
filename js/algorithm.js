@@ -251,6 +251,22 @@
 		this.e = new Image();
 		this.e.src = src;
 		this.e.style.position = 'absolute';
+		this.dens = 1;
+		this.events = {
+			impact: []
+		};
+
+		var self = this;
+
+		on(this.e, 'impact', function (event) {
+			var handlers = self.events[event.type];
+
+			if (!handlers)
+				return;
+
+			for (var i = 0, l = handlers.length; i < l; ++i)
+				handlers[i].call(self, event.detail);
+		});
 	}
 
 	Object.defineProperties(Planet.prototype, {
@@ -294,12 +310,75 @@
 			configurable: false
 		},
 
+		emmit: {
+			value: function (type, value) {
+				this.e.dispatchEvent(new CustomEvent(type, {detail: value}));
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		inverse: {
+			value: function (component) {
+				this.velocity[component] *= -1;
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		mass: {
+			get: function () {
+				return Math.pow(this.radius, 3) * this.dens;
+			},
+			enumerable: false,
+			configurable: false
+		},
+
+		on: {
+			value: function (type, handler) {
+				var handlers = this.events[type];
+				if (handlers) {
+					handlers.push(handler);
+				} else {
+					var self = this;
+					this.events[type] = [handler];
+
+					on(this.e, type, function (event) {
+						var handlers = self.events[event.type];
+
+						if ('detail' in event)
+							event = event.detail;
+
+					for (var i = 0, l = handlers.length; i < l; ++i)
+						handlers[i].call(self, event);
+					});
+				}
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		radius: {
 			get: function () {
 				return +this.e.width / 2;
 			},
 			set: function (r) {
 				this.e.width = this.e.height = 2 * r;
+			},
+			enumerable: false,
+			configurable: false
+		},
+
+		rectangle: {
+			get: function () {
+				return this.e.getBoundingClientRect();
 			},
 			enumerable: false,
 			configurable: false
@@ -667,13 +746,102 @@
 	Object.defineProperties(Space.prototype, {
 		addPlanet: {
 			value: function (obj, coords) {
-				var p = new Planet(obj.e.src).bind(this),
+				var p = new Planet(obj.e.src).bind(this).on('impact', function (values) {
+					function _shift(o1, o2) {
+						var res = {};
+						for (var key in center)
+							res[key] = (o1[key] || 0) - o2[key];
+						return res;
+					}
+					var center = this.center,
+					    delta = _shift(values.center, center);
+					values.velocity = _shift(values.velocity, this.velocity);
+
+					var d = 0;
+					for (var key in delta)
+						d += Math.pow(delta[key], 2);
+
+					var dv = 0;
+
+					for (var key in values.velocity)
+						dv += values.velocity[key] * (delta[key] || 0);
+					dv = 2 * values.mass * dv / (this.mass + values.mass);
+
+					for (var key in delta)
+						this.velocity[key] = (this.velocity[key] || 0) + dv * delta[key] / d;
+
+				}),
 				    self = this;
 				this.e.appendChild(p.e);
 				p.e.onload = function (event) {
 					p.center = {x: coords.x, y: coords.y};
 					p.setVelocity(obj.velocity);
 					self.planets.push(p);
+				}
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		bounds: {
+			value: function () {
+				var zone = this.rectangle;
+
+				for (var i = 0, l = this.planets.length; i < l; ++i) {
+					var planet = this.planets[i],
+					    p = planet.rectangle;
+
+					if (planet.velocity.x * DIRECTION > 0) {
+						if (p.right >= zone.right)
+							planet.inverse('x');
+					} else if (planet.velocity.x){
+						if (p.left <= zone.left)
+							planet.inverse('x');
+					}
+
+					if (planet.velocity.y * DIRECTION > 0) {
+						if (p.bottom >= zone.bottom)
+							planet.inverse('y');
+					} else if (planet.velocity.x){
+						if (p.top <= zone.top)
+							planet.inverse('y');
+					}
+				} 
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		findImpacts: {
+			value: function () {
+				function _img (p) {
+					return {
+						center: p.center,
+						velocity: clone(p.velocity),
+						radius: p.radius,
+						mass: p.mass
+					};
+				}
+				var n = this.planets.length;
+
+				for (var i = 0; i < n - 1; ) {
+					var p1 = this.planets[i],
+					    _p1 = _img(p1);
+
+					for (var j = ++i; j < n; ++j) {
+						var p2 =this.planets[j],
+						    _p2 = _img(p2);
+
+						if (Math.sqrt(Math.pow(_p1.center.x - _p2.center.x, 2) + Math.pow(_p1.center.y - _p2.center.y, 2)) <= _p1.radius + _p2.radius) {
+							p1.emmit('impact', _p2);
+							p2.emmit('impact', _p1);
+						}
+					}
 				}
 				return this;
 			},
@@ -703,7 +871,7 @@
 
 				var det = k1 * k1 - k0 * k2;
 
-				return det ? undefined : - k1 / k0;
+				return det < 0 ? undefined : (- k1 - Math.sqrt(det)) / k0;
 			},
 			writable: false,
 			enumerable: false,
@@ -763,6 +931,14 @@
 			configurable: false
 		},
 
+		rectangle: {
+			get: function () {
+				return this.e.getBoundingClientRect();
+			},
+			enumerable: false,
+			configurable: false
+		},
+
 		restart: {
 			value: function () {
 				while (this.planets.length)
@@ -783,7 +959,11 @@
 				var self = this;
 
 				this.cron.addTask(function () {
-					this.move().impactForecast().setTask();
+					this.move()
+						.impactForecast()
+						.bounds()
+						.findImpacts()
+						.setTask();
 				}, this.step * STEP_PERIOD, [], this)
 			},
 			writable: false,
@@ -818,8 +998,8 @@
 				function _t (v, f, t) {
 					return (t - f) / v;
 				}
-				var zone = this.e.getBoundingClientRect(),
-				    planet = o.e.getBoundingClientRect(),
+				var zone = this.rectangle,
+				    planet = o.rectangle,
 				    t;
 				return Math.min(
 					_t.apply(this, o.velocity.x * DIRECTION > 0 ? [o.velocity.x * DIRECTION, planet.right, zone.right] : [o.velocity.x * DIRECTION, planet.left, zone.left]),

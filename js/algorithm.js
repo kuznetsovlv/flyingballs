@@ -799,22 +799,40 @@
 
 				for (var i = 0, l = this.planets.length; i < l; ++i) {
 					var planet = this.planets[i],
-					    p = planet.rectangle;
+					    p = planet.rectangle,
+					    center = planet.center;
 
 					if (planet.velocity.x * DIRECTION > 0) {
-						if (p.right >= zone.right)
+						if (p.right >= zone.right) {
 							planet.inverse('x');
+							center.x = zone.right - zone.left - planet.radius;
+							center.changed = true;
+						}
 					} else if (planet.velocity.x){
-						if (p.left <= zone.left)
+						if (p.left <= zone.left) {
 							planet.inverse('x');
+							center.x = planet.radius;
+							center.changed = true;
+						}
 					}
 
 					if (planet.velocity.y * DIRECTION > 0) {
-						if (p.bottom >= zone.bottom)
+						if (p.bottom >= zone.bottom) {
 							planet.inverse('y');
+							center.y = zone.bottom - zone.top - planet.radius;
+							center.changed = true;
+						}
 					} else if (planet.velocity.x){
-						if (p.top <= zone.top)
+						if (p.top <= zone.top) {
 							planet.inverse('y');
+							center.y = planet.radius;
+							center.changed = true;
+						}
+					}
+
+					if (center.changed) {
+						delete center.changed;
+						planet.center = center;
 					}
 				} 
 

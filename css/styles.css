@@ -16,6 +16,10 @@
 	outline: none;
 }
 
+.hidden {
+	display: none !important;
+}
+
 html, body {
 	height: 100%;
 }

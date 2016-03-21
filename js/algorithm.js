@@ -174,7 +174,8 @@
 	Object.defineProperties(Ball.prototype, {
 		show: {
 			value: function () {
-				this.e.style.display = '';
+				// this.e.style.display = '';
+				this.e.classList.remove('hidden');
 				return this;
 			},
 			writable: false,
@@ -183,7 +184,8 @@
 		},
 		hide: {
 			value: function () {
-				this.e.style.display = 'none';
+				//this.e.style.display = 'none';
+				this.e.classList.add('hidden');
 				return this;
 			},
 			writable: false,
@@ -1037,8 +1039,9 @@
 	window.onload = function () {
 		new Space()
 			.ondropped(function(ball) {
-				if (!this.store.reload)
-					ball.hide();
+				ball.hide();
+				if (this.store.reload)
+					setTimeout(function () {ball.show();}, 0);
 				return this.addPlanet(ball, {x: ball.x - this.left, y: ball.y - this.top});
 			})
 			.start();

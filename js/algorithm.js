@@ -861,7 +861,7 @@
 						var p2 =this.planets[j],
 						    _p2 = _img(p2);
 
-						if (Math.sqrt(Math.pow(_p1.center.x - _p2.center.x, 2) + Math.pow(_p1.center.y - _p2.center.y, 2)) <= _p1.radius + _p2.radius) {
+						if (Math.pow(_p1.center.x - _p2.center.x, 2) + Math.pow(_p1.center.y - _p2.center.y, 2) <= Math.pow(_p1.radius + _p2.radius, 2)) {
 							p1.emmit('impact', _p2);
 							p2.emmit('impact', _p1);
 						}
@@ -1003,6 +1003,16 @@
 				this.cron.start();
 
 				return this.setTask();
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		stop: {
+			value: function () {
+				this.cron.stop();
+				return this;
 			},
 			writable: false,
 			enumerable: false,

@@ -802,32 +802,28 @@
 					    p = planet.rectangle,
 					    center = planet.center;
 
-					if (planet.velocity.x * DIRECTION > 0) {
-						if (p.right >= zone.right) {
+					if (p.right >= zone.right) {
+						center.x = zone.right - zone.left - planet.radius;
+						center.changed = true;
+						if (planet.velocity.x * DIRECTION > 0)
 							planet.inverse('x');
-							center.x = zone.right - zone.left - planet.radius;
-							center.changed = true;
-						}
-					} else if (planet.velocity.x){
-						if (p.left <= zone.left) {
+					} else if (p.left <= zone.left) {
+						center.x = planet.radius;
+						center.changed = true;
+						if (planet.velocity.x * DIRECTION < 0)
 							planet.inverse('x');
-							center.x = planet.radius;
-							center.changed = true;
-						}
 					}
 
-					if (planet.velocity.y * DIRECTION > 0) {
-						if (p.bottom >= zone.bottom) {
+					if (p.bottom >= zone.bottom) {
+						center.y = zone.bottom - zone.top - planet.radius;
+						center.changed = true;
+						if (planet.velocity.y * DIRECTION > 0)
 							planet.inverse('y');
-							center.y = zone.bottom - zone.top - planet.radius;
-							center.changed = true;
-						}
-					} else if (planet.velocity.x){
-						if (p.top <= zone.top) {
+					} else if (p.top <= zone.top) {
+						center.y = planet.radius;
+						center.changed = true;
+						if (planet.velocity.y * DIRECTION < 0)
 							planet.inverse('y');
-							center.y = planet.radius;
-							center.changed = true;
-						}
 					}
 
 					if (center.changed) {

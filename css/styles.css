@@ -48,10 +48,14 @@ aside {
 	background: url(../img/background-out.png) repeat-y;
 	background-size: 100% 3px;
 	overflow: auto;
+	animation-name: closea;
+	animation-duration: 1s;
 }
 
 body.expanded aside {
 	width: 50px;
+	animation-name: expanda;
+	animation-duration: 1s;
 }
 
 main {
@@ -61,14 +65,38 @@ main {
 	right: 0;
 	bottom: 40px;
 	left: 235px;
+	animation-name: close;
+	animation-duration: 1s;
 }
 
 body.expanded main {
 	left: 50px;
+	animation-name: expand;
+	animation-duration: 1s;
 }
 
 body.expanded aside > *:not(.visiblity) {
 	display: none;
+}
+
+@keyframes expand {
+	0% {left: 235px;}
+	100% {left: 50px;}
+}
+
+@keyframes expanda {
+	0% {width: 235px;}
+	100% {width: 50px;}
+}
+
+@keyframes close {
+	0% {left: 50px;}
+	100% {left: 235px;}
+}
+
+@keyframes closea {
+	0% {width: 50px;}
+	100% {width: 235px;}
 }
 
 .visiblity {
@@ -182,6 +210,14 @@ input[type="checkbox"]:checked + label{
 	top: 0;
 	bottom: 0;
 	margin: auto;
+
+	animation-name: appearense;
+	animation-duration: 0.5s;
+}
+
+@keyframes appearense {
+	0% {transform: scale(0, 0);}
+	100% {transform: scale(1, 1);}
 }
 
 .draggable {

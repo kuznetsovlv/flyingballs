@@ -399,8 +399,9 @@
 		go: {
 			value: function (a) {
 				var position = this.center;
-				for (var key in this.velocity)
+				for (var key in this.velocity) {
 					position[key] = position[key] ? position[key] + a * DIRECTION * this.velocity[key] : a * DIRECTION * this.velocity[key];
+				}
 				this.center = position;
 				return this;
 			},
@@ -876,12 +877,12 @@
 
 		impact: {
 			value: function (a, b) {
-				var d = a.radius + b.radius,
-				    a_c = a.center,
+				var a_c = a.center,
 				    b_c = b.center,
-				    k0, k1, k2;
+				    k0 = - Math.pow((a.radius + b.radius) * 0.9, 2), //Multiplier 0.9 is to fix rounding problem
+				    k1, k2;
 
-				k0 = k1 = k2 = 0;
+				k1 = k2 = 0;
 
 				for (var key in a_c) {
 
@@ -893,9 +894,10 @@
 					k2 += dv * dv;
 				}
 
+
 				var det = k1 * k1 - k0 * k2;
 
-				return det < 0 ? undefined : (- k1 - Math.sqrt(det)) / k0;
+				return det < 0 ? undefined : (- k1 - Math.sqrt(det)) / k2;
 			},
 			writable: false,
 			enumerable: false,
@@ -988,7 +990,7 @@
 						.bounds()
 						.findImpacts()
 						.setTask();
-				}, this.step * STEP_PERIOD, [], this)
+				}, this.step * STEP_PERIOD, [], this);
 			},
 			writable: false,
 			enumerable: false,

@@ -400,7 +400,7 @@
 			value: function (a) {
 				var position = this.center;
 				for (var key in this.velocity) {
-					position[key] = position[key] ? position[key] + a * DIRECTION * this.velocity[key] : a * DIRECTION * this.velocity[key];
+					position[key] = position[key] ? position[key] + a * this.velocity[key] : a * this.velocity[key];
 				}
 				this.center = position;
 				return this;
@@ -842,6 +842,78 @@
 			configurable: false
 		},
 
+		grav: {
+			value: function (planet) {
+
+				function _accelerate (position, planet) {
+					var center = planet.center,
+					    delta = {};
+
+					for (var key in center)
+						delta[key] = center[key] - (position[key] || 0);
+
+					var rr = 0, r;
+
+					for (var key in delta)
+						rr += Math.pow(delta[key], 2);
+					r = Math.sqrt(rr, 2);
+
+					var a = this.gravitation.G * planet.mass / rr;
+
+					for (var key in delta)
+						delta[key] *= a / r;
+
+					return delta;
+				}
+
+				function _step (position, planet, h, dv, k) {
+					var tmp = {};
+					for (var key in position)
+						tmp[key] = position[key] + h;
+
+					tmp = _accelerate.call(this, tmp, planet);
+					
+					for (var key in tmp)
+						dv[key] = (dv[key] || 0) + tmp[key] * k * DIRECTION;
+				}
+
+				function _rungeKutta(position, planet) {
+					var p = planet.center,
+					    r = 0;
+
+					for (var key in position)
+						r += Math.pow(position[key] - p[key], 2);
+					var r = Math.sqrt(r),
+					    h = 1 - Math.exp(-r / 10000),
+					    dv = {};
+
+					_step.call(this, position, planet, 0, dv, h);
+					_step.call(this, position, planet, h / 2, dv, 4 * h);
+					_step.call(this, position, planet, h, dv, h);
+
+					return dv;
+				}
+
+				if (this.gravitation.G) {
+					var n = this.planets.length;
+
+					for (var i = 0; i < n; ++i) {
+						var planet = this.planets[i];
+						for (var j = 0; j < n; ++j) {
+							if (i === j)
+								continue;
+							planet.accelerate(_rungeKutta.call(this, planet.center, this.planets[j]));
+						}
+					}
+				}
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		findImpacts: {
 			value: function () {
 				function _img (p) {
@@ -895,9 +967,9 @@
 				}
 
 
-				var det = k1 * k1 - k0 * k2;
+				var d = k1 * k1 - k0 * k2;
 
-				return det < 0 ? undefined : (- k1 - Math.sqrt(det)) / k2;
+				return d < 0 ? undefined : (- k1 - Math.sqrt(d)) / k2;
 			},
 			writable: false,
 			enumerable: false,
@@ -939,7 +1011,7 @@
 		move: {
 			value: function () {
 				for (var i = 0, l = this.planets.length; i < l; ++i)
-					this.planets[i].go(this.step);
+					this.planets[i].go(this.step * DIRECTION);
 				return this
 			},
 			writable: false,
@@ -986,9 +1058,10 @@
 
 				this.cron.addTask(function () {
 					this.move()
-						.impactForecast()
 						.bounds()
+						.grav()
 						.findImpacts()
+						.impactForecast()
 						.setTask();
 				}, this.step * STEP_PERIOD, [], this);
 			},

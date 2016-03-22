@@ -1,10 +1,143 @@
 (function () {
 	"use strict";
 
+	function Cron (period) {
+		this.period = period || CRON_PERIOD;
+		this.tasks = {};
+	}
+
+	Object.defineProperties(Cron.prototype, {
+		addTask: {
+			value: function (action /*function*/, when /*ms*/, args /*Array*/, context) {
+				var task = {
+					action: action,
+					args: args || [],
+					context: context || this
+				};
+
+				when += Date.now();
+
+				if (!this.tasks)
+					this.tasks = {};
+
+				if (!this.tasks[when])
+					this.tasks[when] = [task];
+				else
+					this.tasks[when].push(task);
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		complete: {
+			value: function () {
+				var self = this;
+				this.interval = setTimeout(function () {
+					if (!self.tasks)
+						self.tasks = {};
+
+					for (var key in self.tasks) {
+						if (parseInt(key) <= Date.now()) {
+							var tasks = self.tasks[key];
+							for (var i = 0, l = tasks.length; i < l; ++i) {
+								var task = tasks[i];
+								task.action.apply(task.context, task.args);
+							}
+							delete self.tasks[key];
+						} else {
+							break;
+						}
+					}
+					self.complete();
+				}, this.nexIntrval);
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		nexIntrval: {
+			get: function () {
+				var next;
+				for (var key in this.tasks) {
+					next = parseInt(key);
+					break;
+				}
+				
+				return next ? this.period : Math.min(Math.max(next - Date.now(), 0), this.period);
+			},
+			enumerable: false,
+			configurable: false
+		},
+
+		removeTask: {
+			value: function (action) {
+				if (this.tasks) {
+					for (var key in this.tasks) {
+						var tasks = this.tasks[key];
+
+						for (var i = 0; i < tasks.length; ++i) {
+							if (action === tasks[i].action) {
+								tasks.splice(i--, 1);
+							}
+						}
+					}
+				}
+
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		shift: {
+			value: function (shift) {
+				var tasks = {};
+				for (var key in this.tasks)
+					tasks[parseInt(key) + shift] = this.tasks[key];
+				this.tasks = tasks;
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		start: {
+			value: function () {
+				if (this.stoped)
+					this.shift(Date.now() - this.stoped);
+				return this.complete();
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		stop: {
+			value: function () {
+				if (this.interval) {
+					clearTimeout(this.interval);
+					delete this.interval;
+					this.stoped = Date.now();
+				}
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		}
+	});
+
 	var DIRECTION = 1; //Pseudoconstant to simple iverse velosities
 	var STEP_PERIOD = 40;
 	var CRON_PERIOD = 10;
 	var ZERO = 0.028; //Half-width of the zero interval to pushing resting balls
+
+	var CRON = new Cron(CRON_PERIOD);
 
 	try {
 		new CustomEvent("IE has CustomEvent, but doesn't support constructor");
@@ -94,6 +227,8 @@
 
 		this.velocity = {x: 0, y: 0};
 
+		this.cron = CRON;
+
 		this.target = document.getElementsByTagName('main')[0];
 
 		var self = this;
@@ -102,22 +237,7 @@
 			this.style.left = [event.clientX - this.width / 2, 'px'].join('');
 			this.style.top = [event.clientY - this.height / 2, 'px'].join('');
 
-				this.style.cursor = inTarget(self.target, {x: event.clientX, y: event.clientY}) ? 'move' : '';
-
-			var dt = (Date.now() - self.now) / STEP_PERIOD;
-
-			if (dt) {
-				var dx = event.clientX - self.x,
-				    dy = event.clientY - self.y;
-				if (!self.velocities)
-					self.velocities = [{x: dx / dt, y: dy / dt}];
-				else
-					self.velocities.push({x: dx / dt, y: dy / dt});
-				self.x = event.clientX;
-				self.y = event.clientY;
-				while(self.velocities.length > 20)
-					self.velocities.shift();
-			}
+			this.style.cursor = inTarget(self.target, {x: event.clientX, y: event.clientY}) ? 'move' : '';
 		}
 
 		on(elem, 'mousedown', function (event) {
@@ -127,7 +247,7 @@
 			this.style.position = 'fixed';
 			this.style.zIndex = 10000;
 
-			self.velocity = {x: 0, y:0};
+			self.messureVelocity();
 
 			var handler = on(document, 'mousemove', function (event) {
 				moving.call(self.e, event);
@@ -136,18 +256,12 @@
 			var handler2 = on(document, 'mouseup', function (event) {
 				off(document, 'mousemove', handler);
 				off(document, 'mouseup', handler2);
-				if (self.velocities) {
-					var last = self.velocities[self.velocities.length - 1];
-					if (Math.abs(last.x) < ZERO && Math.abs(last.y) < ZERO) {
-						self.velocity = {x: 0, y: 0};
-					} else {
-						self.velocity = self.velocities.reduce(function (a, b) {return {x: a.x + b.x, y: a.y + b.y};});
-						self.velocity.x *= DIRECTION; //Consider current DIRECTION
-						self.velocity.y *= DIRECTION;
-					}
-				}
-			
-				delete self.velocities;
+				
+				self.cron.removeTask(self.messureVelocity);
+
+				for (var key in self.velocity)
+					self.velocity[key] *= 50;
+
 				elem.style.left = '';
 				elem.style.top = '';
 				elem.style.margin = '';
@@ -172,9 +286,42 @@
 	}
 
 	Object.defineProperties(Ball.prototype, {
+		messureVelocity: {
+			value: (function () {
+				var x, y, t;
+
+				function velocity () {
+					var rect = this.e.getBoundingClientRect(),
+					    now = Date.now();
+
+					if (x !== undefined && y !== undefined && t !== undefined) {
+						var dt = now - t;
+
+						this.velocity = {
+							x: (rect.left - x) / dt,
+							y: (rect.top - y) / dt
+						}
+					}
+
+					x = rect.left;
+					y = rect.top;
+					t = now;
+
+					return this;
+				};
+
+				return function () {
+					velocity.apply(this, []).cron.addTask(this.messureVelocity, 40, [], this);
+					return this;
+				};
+			})(),
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		show: {
 			value: function () {
-				// this.e.style.display = '';
 				this.e.classList.remove('hidden');
 				return this;
 			},
@@ -184,7 +331,6 @@
 		},
 		hide: {
 			value: function () {
-				//this.e.style.display = 'none';
 				this.e.classList.add('hidden');
 				return this;
 			},
@@ -595,120 +741,10 @@
 		}
 	});
 
-	function Cron (period) {
-		this.period = period || CRON_PERIOD;
-		this.tasks = {};
-	}
-
-	Object.defineProperties(Cron.prototype, {
-		addTask: {
-			value: function (action /*function*/, when /*ms*/, args /*Array*/, context) {
-				var task = {
-					action: action,
-					args: args || [],
-					context: context || this
-				};
-
-				when += Date.now();
-
-				if (!this.tasks)
-					this.tasks = {};
-
-				if (!this.tasks[when])
-					this.tasks[when] = [task];
-				else
-					this.tasks[when].push(task);
-				return this;
-			},
-			writable: false,
-			enumerable: false,
-			configurable: false
-		},
-
-		complete: {
-			value: function () {
-				var self = this;
-				this.interval = setTimeout(function () {
-					if (!self.tasks)
-						self.tasks = {};
-
-					for (var key in self.tasks) {
-						if (parseInt(key) <= Date.now()) {
-							var tasks = self.tasks[key];
-							for (var i = 0, l = tasks.length; i < l; ++i) {
-								var task = tasks[i];
-								task.action.apply(task.context, task.args);
-							}
-							delete self.tasks[key];
-						} else {
-							break;
-						}
-					}
-					self.complete();
-				}, this.nexIntrval);
-			},
-			writable: false,
-			enumerable: false,
-			configurable: false
-		},
-
-		nexIntrval: {
-			get: function () {
-				var next;
-				for (var key in this.tasks) {
-					next = parseInt(key);
-					break;
-				}
-				
-				return next ? this.period : Math.min(Math.max(next - Date.now(), 0), this.period);
-			},
-			enumerable: false,
-			configurable: false
-		},
-
-		shift: {
-			value: function (shift) {
-				var tasks = {};
-				for (var key in this.tasks)
-					tasks[parseInt(key) + shift] = this.tasks[key];
-				this.tasks = tasks;
-				return this;
-			},
-			writable: false,
-			enumerable: false,
-			configurable: false
-		},
-
-		start: {
-			value: function () {
-				if (this.stoped)
-					this.shift(Date.now() - this.stoped);
-				return this.complete();
-			},
-			writable: false,
-			enumerable: false,
-			configurable: false
-		},
-
-		stop: {
-			value: function () {
-				if (this.interval) {
-					clearTimeout(this.interval);
-					delete this.interval;
-					this.stoped = Date.now();
-				}
-				return this;
-			},
-			writable: false,
-			enumerable: false,
-			configurable: false
-		}
-	});
-
 	function Space () {
 		this.e = document.getElementsByTagName('main')[0];
 
-		this.cron = new Cron (CRON_PERIOD);
+		this.cron = CRON;
 
 		this.planets = [];
 
@@ -1054,8 +1090,6 @@
 
 		setTask: {
 			value: function () {
-				var self = this;
-
 				this.cron.addTask(function () {
 					this.move()
 						.bounds()

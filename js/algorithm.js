@@ -548,6 +548,10 @@
 		setVelocity: {
 			value: function (v) {
 				this.velocity = clone(v);
+
+				for (var key in this.velocity)
+					this.velocity[key] *= DIRECTION;
+
 				return this;
 			},
 			writable: false,

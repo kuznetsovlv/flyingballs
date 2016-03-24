@@ -286,6 +286,16 @@
 	}
 
 	Object.defineProperties(Ball.prototype, {
+		hide: {
+			value: function () {
+				this.e.classList.add('hidden');
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		messureVelocity: {
 			value: (function () {
 				var x, y, t;
@@ -329,15 +339,18 @@
 			enumerable: false,
 			configurable: false
 		},
-		hide: {
-			value: function () {
-				this.e.classList.add('hidden');
-				return this;
+
+		figure: {
+			get: function () {
+				return {
+					src: this.e.src,
+					hidden: this.e.classList.contains('hidden')
+				}
 			},
-			writable: false,
 			enumerable: false,
 			configurable: false
 		}
+		
 	});
 
 	function Store () {
@@ -542,6 +555,20 @@
 			configurable: false
 		},
 
+		figure: {
+			get: function () {
+				return {
+					center: this.center,
+					radius: this.radius,
+					dens: this.dens,
+					src: this.e.src,
+					velocity: this.velocity
+				};
+			},
+			enumerable: false,
+			configurable: false
+		},
+
 		go: {
 			value: function (a) {
 				var position = this.center;
@@ -738,6 +765,16 @@
 			writable: false,
 			enumerable: false,
 			configurable: false
+		},
+
+		setValue: {
+			value: function (v) {
+				this.enable(v || this.switcher.checked).range.setValue(v / this.MAX);
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
 		}
 	});
 
@@ -780,44 +817,48 @@
 		on(document.getElementById('restart'), 'click', function (event) {
 			self.restart();
 		});
+
+		// on(window, 'unload', function (event) {
+		// 	self.save();
+		// });
 	}
 
 	Object.defineProperties(Space.prototype, {
 		addPlanet: {
 			value: function (obj, coords) {
 				var p = new Planet(obj.e.src).bind(this).on('impact', function (values) {
-					function _shift(o1, o2) {
-						var res = {};
-						for (var key in center)
-							res[key] = (o1[key] || 0) - o2[key];
-						return res;
-					}
-					var center = this.center,
-					    delta = _shift(values.center, center);
-					values.velocity = _shift(values.velocity, this.velocity);
+				    	function _shift(o1, o2) {
+				    		var res = {};
+				    		for (var key in center)
+				    			res[key] = (o1[key] || 0) - o2[key];
+				    		return res;
+				    	}
+				    	var center = this.center,
+				    	    delta = _shift(values.center, center);
+				    	values.velocity = _shift(values.velocity, this.velocity);
 
-					var d = 0;
-					for (var key in delta)
-						d += Math.pow(delta[key], 2);
-					d = Math.sqrt(d);
+				    	var d = 0;
+				    	for (var key in delta)
+				    		d += Math.pow(delta[key], 2);
+				    	d = Math.sqrt(d);
 
-					var dv = 0;
+				    	var dv = 0;
 
-					for (var key in values.velocity)
+				    	for (var key in values.velocity)
 						dv += Math.pow(values.velocity[key], 2);
-					dv = Math.sqrt(dv);
+				    	dv = Math.sqrt(dv);
 
-					dv *= (values.velocity.x / dv) * (delta.x / d) + (values.velocity.y / dv) * (delta.y / d);
+				    	dv *= (values.velocity.x / dv) * (delta.x / d) + (values.velocity.y / dv) * (delta.y / d);
 
-					if (dv * DIRECTION >= 0)
-						return;
+				    	if (dv * DIRECTION >= 0)
+				    		return;
 
-					dv *= 2 * values.mass / (this.mass + values.mass);
+				    	dv *= 2 * values.mass / (this.mass + values.mass);
 
-					for (var key in delta)
-						this.velocity[key] = (this.velocity[key] || 0) + dv * delta[key] / d;
+				    	for (var key in delta)
+				    		this.velocity[key] = (this.velocity[key] || 0) + dv * delta[key] / d;
 
-				}),
+				    }),
 				    self = this;
 				this.e.appendChild(p.e);
 				p.e.onload = function (event) {
@@ -872,6 +913,70 @@
 				} 
 
 				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
+		configure: {
+			value: function (data) {
+				var state = data.state,
+				    store = data.store,
+				    zone = data.zone;
+
+				DIRECTION = data.direction || DIRECTION;
+
+				if (state) {
+					var inputs = document.getElementsByTagName('input');
+
+					for (var i = 0, l = inputs.length; i < l; ++i) {
+						var field = inputs[i],
+						    fieldState = state[field.id];
+						    if (!fieldState)
+						    	continue;
+						    for (var key in fieldState)
+						    	field[key] = fieldState[key];
+					}
+
+					if ('gravitation' in state)
+						this.gravitation.setValue(+state.gravitation);
+				}
+
+				if (store) {
+					for (var i = 0, l = this.store.balls.length; i < l; ++i) {
+						var ball = this.store.balls[i],
+						    src = ball.figure.src;
+
+						for (var j = 0, l = store.length; j < l; ++j) {
+							var fig = store[j];
+
+							if (fig.src === src) {
+								if (fig.hidden)
+									ball.hide();
+								break;
+							}
+						}
+
+					}
+				}
+
+				if (zone) {
+					if (zone.expanded)
+						document.body.classList.add('expanded');
+
+					var self = this;
+
+					setTimeout(function () {
+						for (var i = 0, l = zone.planets.length; i < l; ++i) {
+							var planet = zone.planets[i];
+							self.addPlanet({
+								velocity: planet.velocity,
+								e: {src: planet.src}
+							}, planet.center);
+						}
+					}, 1000);
+				}
 			},
 			writable: false,
 			enumerable: false,
@@ -1088,6 +1193,46 @@
 			configurable: false
 		},
 
+		save: {
+			value: function () {
+				var data = {
+					direction: DIRECTION,
+					zone: {
+						planets: [],
+						expanded: document.body.classList.contains('expanded')
+					},
+					store: [],
+					state: {}
+				};
+
+				var inputs = document.getElementsByTagName('input'),
+				     props = 'disabled,value,checked'.split(',');
+
+				for (var i = 0, l = inputs.length; i < l; ++i) {
+					var field = inputs[i],
+					    state = data.state[field.id] = {};
+					for (var j = 0, n = props.length; j < n; ++j) {
+						var p = props[j];
+						state[p] = field[p];
+					}
+				}
+
+				data.state.gravitation = this.gravitation.G;
+
+				for (var i = 0, l = this.store.balls.length; i < l; ++i)
+					data.store.push(this.store.balls[i].figure);
+
+				for (var i = 0, l = this.planets.length; i < l; ++i)
+					data.zone.planets.push(this.planets[i].figure);
+
+				localStorage.setItem('data', JSON.stringify(data));
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		setTask: {
 			value: function () {
 				this.cron.addTask(function () {
@@ -1096,8 +1241,10 @@
 						.grav()
 						.findImpacts()
 						.impactForecast()
-						.setTask();
+						.setTask().save();
 				}, this.step * STEP_PERIOD, [], this);
+
+				return this;
 			},
 			writable: false,
 			enumerable: false,
@@ -1108,6 +1255,11 @@
 			value: function () {
 
 				this.step = 1;
+
+				var data = JSON.parse(localStorage.getItem('data'));
+
+				if (data)
+					this.configure(data);
 
 				this.cron.start();
 

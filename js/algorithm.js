@@ -513,6 +513,17 @@
 			configurable: false
 		},
 
+		inverseAll: {
+			value: function () {
+				for (var key in this.velocity)
+					this.velocity[key] *= -1;
+				return this;
+			},
+			writable: false,
+			enumerable: false,
+			configurable: false
+		},
+
 		mass: {
 			get: function () {
 				return Math.pow(this.radius, 3) * this.dens;
@@ -844,9 +855,9 @@
 			self.restart();
 		});
 
-		// on(window, 'unload', function (event) {
-		// 	self.save();
-		// });
+		on(window, 'unload', function (event) {
+			self.save();
+		});
 	}
 
 	Object.defineProperties(Space.prototype, {
@@ -951,8 +962,6 @@
 				    store = data.store,
 				    zone = data.zone;
 
-				DIRECTION = data.direction || DIRECTION;
-
 				if (state) {
 					var inputs = document.getElementsByTagName('input');
 
@@ -993,15 +1002,18 @@
 
 					var self = this;
 
-					setTimeout(function () {
-						for (var i = 0, l = zone.planets.length; i < l; ++i) {
-							var planet = zone.planets[i];
-							self.addPlanet({
-								velocity: planet.velocity,
-								e: {src: planet.src}
-							}, planet.center);
-						}
-					}, 1000);
+					if (zone.planets)
+						setTimeout(function () {
+							for (var i = 0, l = zone.planets.length; i < l; ++i) {
+								var planet = zone.planets[i];
+								self.addPlanet({
+									velocity: planet.velocity,
+									e: {src: planet.src}
+								}, planet.center);
+							}
+
+							// DIRECTION = data.direction || DIRECTION; console.log(data.direction, DIRECTION);
+						}, 1000);
 				}
 			},
 			writable: false,
@@ -1248,8 +1260,12 @@
 				for (var i = 0, l = this.store.balls.length; i < l; ++i)
 					data.store.push(this.store.balls[i].figure);
 
-				for (var i = 0, l = this.planets.length; i < l; ++i)
-					data.zone.planets.push(this.planets[i].figure);
+				for (var i = 0, l = this.planets.length; i < l; ++i){
+					var planet = this.planets[i];
+					if (DIRECTION < 0)
+						planet.inverseAll();
+					data.zone.planets.push(planet.figure);
+				}
 
 				localStorage.setItem('data', JSON.stringify(data));
 				return this;
@@ -1267,7 +1283,9 @@
 						.grav()
 						.findImpacts()
 						.impactForecast()
-						.setTask().save();
+						.setTask()
+						// .save()
+						;
 				}, this.step * STEP_PERIOD, [], this);
 
 				return this;

@@ -258,9 +258,7 @@
 				off(document, 'mouseup', handler2);
 				
 				self.cron.removeTask(self.messureVelocity);
-
-				for (var key in self.velocity)
-					self.velocity[key] *= 50;
+				
 
 				elem.style.left = '';
 				elem.style.top = '';
@@ -269,8 +267,23 @@
 				elem.style.zIndex = '';
 				self.x = event.clientX;
 				self.y = event.clientY;
-				if (inTarget(self.target, {x: event.clientX, y: event.clientY}))
+				if (inTarget(self.target, {x: event.clientX, y: event.clientY})) {
+					self.velocity = self.velosities.reduce(function (x, y, i, arr) {
+						var l = arr.length;
+
+						for (var key in y)
+							x[key] = (x[key] || 0) + y[key] / l;
+						
+						return x;
+					});
+
+					delete self.velosities;
+
+					for (var key in self.velocity)
+						self.velocity[key] *= 50;
+
 					self.target.dispatchEvent(new CustomEvent('drop', {detail: self}));
+				}
 			});
 		});
 
@@ -307,9 +320,18 @@
 					if (x !== undefined && y !== undefined && t !== undefined) {
 						var dt = now - t;
 
-						this.velocity = {
+						var velocity = {
 							x: (rect.left - x) / dt,
 							y: (rect.top - y) / dt
+						}
+
+						if (!this.velosities)
+							this.velosities = [velocity];
+						else {
+							this.velosities.push(velocity);
+
+							while (this.velosities.length > 5)
+								this.velosities.shift();
 						}
 					}
 

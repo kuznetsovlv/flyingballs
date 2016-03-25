@@ -1,6 +1,10 @@
 (function () {
 	"use strict";
 
+	/*
+	* Common timer to commit tasks by shcedule
+	*/
+
 	function Cron (period) {
 		this.period = period || CRON_PERIOD;
 		this.tasks = {};
@@ -8,7 +12,7 @@
 
 	Object.defineProperties(Cron.prototype, {
 		addTask: {
-			value: function (action /*function*/, when /*ms*/, args /*Array*/, context) {
+			value: function (action /*function*/, when /*ms from now*/, args /*Array*/, context) {
 				var task = {
 					action: action,
 					args: args || [],
@@ -132,11 +136,16 @@
 		}
 	});
 
+	/*
+	* Initializing block
+	*/
+
 	var DIRECTION = 1; //Pseudoconstant to simple iverse velosities
 	var STEP_PERIOD = 40;
 	var CRON_PERIOD = 10;
 	var ZERO = 0.028; //Half-width of the zero interval to pushing resting balls
 
+	/*Cron initiated*/
 	var CRON = new Cron(CRON_PERIOD);
 
 	try {
@@ -221,6 +230,10 @@
 		var rect = target.getBoundingClientRect();
 		return coords.x > rect.left && coords.x < rect.right && coords.y > rect.top &&  coords.y < rect.bottom;
 	}
+
+	/*
+	* Constructor's block
+	*/
 
 	function Ball (elem) {
 		this.e = elem;
@@ -1024,6 +1037,11 @@
 		grav: {
 			value: function (planet) {
 
+				/*
+				* To calculate gravitation I used the Runge–Kutta method (RK4).
+				* The theory is at https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods (or in Russian https://ru.wikipedia.org/wiki/%D0%9C%D0%B5%D1%82%D0%BE%D0%B4_%D0%A0%D1%83%D0%BD%D0%B3%D0%B5_%E2%80%94_%D0%9A%D1%83%D1%82%D1%82%D1%8B)
+				*/
+
 				function _accelerate (position, planet) {
 					var center = planet.center,
 					    delta = {};
@@ -1067,7 +1085,7 @@
 					    dv = {};
 
 					_step.call(this, position, planet, 0, dv, h);
-					_step.call(this, position, planet, h / 2, dv, 4 * h);
+					_step.call(this, position, planet, h / 2, dv, 4 * h); // In our case k2 and k3 are the same
 					_step.call(this, position, planet, h, dv, h);
 
 					return dv;
